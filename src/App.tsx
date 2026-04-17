@@ -1,31 +1,31 @@
-import { useState } from 'react';
-import { DropZone } from './components/DropZone/DropZone';
-import { FileList } from './components/FileList/FileList';
-import { LogTable } from './components/LogTable/LogTable';
-import { useLoadedFiles } from './hooks/useLoadedFiles';
-import { useLogTable } from './hooks/useLogTable';
-import './App.css';
+import { useState } from 'react'
+import { DropZone } from './components/DropZone/DropZone'
+import { FileList } from './components/FileList/FileList'
+import { LogTable } from './components/LogTable/LogTable'
+import { useLoadedFiles } from './hooks/useLoadedFiles'
+import { useLogTable } from './hooks/useLogTable'
+import './App.css'
 
 export function App() {
-  const { files, addFiles, removeFile, clearAll } = useLoadedFiles();
-  const [filters, setFilters] = useState<Record<string, string>>({});
+  const { files, addFiles, removeFile, clearAll } = useLoadedFiles()
+  const [filters, setFilters] = useState<Record<string, string>>({})
 
-  const { columns, rows, hasNoTimestamp } = useLogTable(files, filters);
+  const { columns, rows, hasNoTimestamp } = useLogTable(files, filters)
 
   function handleFilterChange(col: string, value: string) {
-    setFilters((prev) => ({ ...prev, [col]: value }));
+    setFilters((prev) => ({ ...prev, [col]: value }))
   }
 
   function handleClearAll() {
-    clearAll();
-    setFilters({});
+    clearAll()
+    setFilters({})
   }
 
   function handleRemoveFile(id: string) {
-    removeFile(id);
+    removeFile(id)
   }
 
-  const hasEntries = files.some((f) => f.entries.length > 0);
+  const hasEntries = files.some((f) => f.entries.length > 0)
 
   return (
     <div className="app">
@@ -44,11 +44,9 @@ export function App() {
             hasNoTimestamp={hasNoTimestamp}
           />
         ) : files.length === 0 ? (
-          <div className="app__empty">
-            Load one or more log files to get started.
-          </div>
+          <div className="app__empty">Load one or more log files to get started.</div>
         ) : null}
       </main>
     </div>
-  );
+  )
 }
