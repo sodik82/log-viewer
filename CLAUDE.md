@@ -41,6 +41,7 @@ CI runs `lint` and `build` on every push; `deploy` auto-publishes to GitHub Page
 | `src/utils/columnDeriver.ts` | Scans all entries; emits column list with priority ordering |
 | `src/types/log.ts` | Core interfaces: `LogEntry`, `ParseResult`, `LoadedFile`, `ILogLoader` |
 | `src/loaders/__tests__/JsonLogLoader.test.ts` | Unit tests for JSON/NDJSON loader |
+| `src/loaders/__tests__/CsvLogLoader.test.ts` | Unit tests for CSV loader |
 | `src/utils/__tests__/timestampDetector.test.ts` | Unit tests for timestamp field detection |
 
 ### Conventions
