@@ -1,30 +1,33 @@
-import { useRef, useState } from 'react';
-import './DropZone.css';
+import { useRef, useState } from 'react'
+import './DropZone.css'
 
 interface Props {
-  onFiles: (files: File[]) => void;
+  onFiles: (files: File[]) => void
 }
 
 export function DropZone({ onFiles }: Props) {
-  const [dragging, setDragging] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   function handleDrop(e: React.DragEvent) {
-    e.preventDefault();
-    setDragging(false);
-    onFiles(Array.from(e.dataTransfer.files));
+    e.preventDefault()
+    setDragging(false)
+    onFiles(Array.from(e.dataTransfer.files))
   }
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []);
-    if (files.length > 0) onFiles(files);
-    e.target.value = '';
+    const files = Array.from(e.target.files ?? [])
+    if (files.length > 0) onFiles(files)
+    e.target.value = ''
   }
 
   return (
     <div
       className={`drop-zone${dragging ? ' drop-zone--active' : ''}`}
-      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+      onDragOver={(e) => {
+        e.preventDefault()
+        setDragging(true)
+      }}
       onDragLeave={() => setDragging(false)}
       onDrop={handleDrop}
     >
@@ -44,5 +47,5 @@ export function DropZone({ onFiles }: Props) {
         onChange={handleChange}
       />
     </div>
-  );
+  )
 }

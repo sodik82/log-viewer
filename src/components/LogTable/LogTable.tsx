@@ -1,34 +1,32 @@
-import type { LogEntry } from '../../types/log';
-import './LogTable.css';
+import type { LogEntry } from '../../types/log'
+import './LogTable.css'
 
 interface Props {
-  columns: string[];
-  rows: LogEntry[];
-  filters: Record<string, string>;
-  onFilterChange: (col: string, value: string) => void;
-  hasNoTimestamp: boolean;
+  columns: string[]
+  rows: LogEntry[]
+  filters: Record<string, string>
+  onFilterChange: (col: string, value: string) => void
+  hasNoTimestamp: boolean
 }
 
 function renderCell(col: string, entry: LogEntry): string {
   if (col === '_timestamp') {
-    return entry._timestamp ? entry._timestamp.toISOString() : '';
+    return entry._timestamp ? entry._timestamp.toISOString() : ''
   }
-  const val = entry[col];
-  if (val === null || val === undefined) return '';
+  const val = entry[col]
+  if (val === null || val === undefined) return ''
   if (typeof val === 'object') {
-    const s = JSON.stringify(val);
-    return s.length > 200 ? s.slice(0, 200) + '…' : s;
+    const s = JSON.stringify(val)
+    return s.length > 200 ? s.slice(0, 200) + '…' : s
   }
-  return String(val);
+  return String(val)
 }
 
 export function LogTable({ columns, rows, filters, onFilterChange, hasNoTimestamp }: Props) {
   return (
     <div className="log-table-wrap">
       {hasNoTimestamp && (
-        <div className="log-table__notice">
-          No timestamp field detected — showing file order.
-        </div>
+        <div className="log-table__notice">No timestamp field detected — showing file order.</div>
       )}
       <div className="log-table__scroll">
         <table className="log-table">
@@ -70,9 +68,7 @@ export function LogTable({ columns, rows, filters, onFilterChange, hasNoTimestam
           <div className="log-table__empty">No rows match the current filters.</div>
         )}
       </div>
-      <div className="log-table__footer">
-        {rows.length.toLocaleString()} rows
-      </div>
+      <div className="log-table__footer">{rows.length.toLocaleString()} rows</div>
     </div>
-  );
+  )
 }

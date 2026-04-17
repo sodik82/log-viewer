@@ -1,14 +1,14 @@
-import type { LoadedFile } from '../../types/log';
-import './FileList.css';
+import type { LoadedFile } from '../../types/log'
+import './FileList.css'
 
 interface Props {
-  files: LoadedFile[];
-  onRemove: (id: string) => void;
-  onClear: () => void;
+  files: LoadedFile[]
+  onRemove: (id: string) => void
+  onClear: () => void
 }
 
 export function FileList({ files, onRemove, onClear }: Props) {
-  if (files.length === 0) return null;
+  if (files.length === 0) return null
 
   return (
     <div className="file-list">
@@ -18,11 +18,7 @@ export function FileList({ files, onRemove, onClear }: Props) {
           <span className="file-chip__count">
             {f.error ? `⚠ ${f.error}` : `${f.entries.length.toLocaleString()} entries`}
           </span>
-          <button
-            className="file-chip__remove"
-            onClick={() => onRemove(f.id)}
-            title="Remove file"
-          >
+          <button className="file-chip__remove" onClick={() => onRemove(f.id)} title="Remove file">
             ×
           </button>
         </div>
@@ -33,5 +29,5 @@ export function FileList({ files, onRemove, onClear }: Props) {
         </button>
       )}
     </div>
-  );
+  )
 }
