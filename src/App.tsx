@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { DropZone } from './components/DropZone/DropZone'
 import { FileList } from './components/FileList/FileList'
 import { LogTable } from './components/LogTable/LogTable'
@@ -8,22 +7,7 @@ import './App.css'
 
 export function App() {
   const { files, addFiles, removeFile, clearAll } = useLoadedFiles()
-  const [filters, setFilters] = useState<Record<string, string>>({})
-
-  const { columns, rows, hasNoTimestamp } = useLogTable(files, filters)
-
-  function handleFilterChange(col: string, value: string) {
-    setFilters((prev) => ({ ...prev, [col]: value }))
-  }
-
-  function handleClearAll() {
-    clearAll()
-    setFilters({})
-  }
-
-  function handleRemoveFile(id: string) {
-    removeFile(id)
-  }
+  const { sorted, columnIds, hasNoTimestamp } = useLogTable(files)
 
   const hasEntries = files.some((f) => f.entries.length > 0)
 
@@ -34,15 +18,9 @@ export function App() {
       </header>
       <main className="app__main">
         <DropZone onFiles={addFiles} />
-        <FileList files={files} onRemove={handleRemoveFile} onClear={handleClearAll} />
+        <FileList files={files} onRemove={removeFile} onClear={clearAll} />
         {hasEntries ? (
-          <LogTable
-            columns={columns}
-            rows={rows}
-            filters={filters}
-            onFilterChange={handleFilterChange}
-            hasNoTimestamp={hasNoTimestamp}
-          />
+          <LogTable data={sorted} columnIds={columnIds} hasNoTimestamp={hasNoTimestamp} />
         ) : files.length === 0 ? (
           <div className="app__empty">Load one or more log files to get started.</div>
         ) : null}
