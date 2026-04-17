@@ -9,9 +9,9 @@ export class JsonLogLoader implements ILogLoader {
     const trimmed = content.trim()
     if (!trimmed) return { entries: [], timestampField: null }
 
-    const rawObjects = trimmed.startsWith('[')
-      ? this.parseArray(trimmed)
-      : this.parseNdjson(trimmed)
+    const rawObjects = (
+      trimmed.startsWith('[') ? this.parseArray(trimmed) : this.parseNdjson(trimmed)
+    ).map((obj) => this.flatten(obj))
 
     if (rawObjects.length === 0) return { entries: [], timestampField: null }
 
@@ -37,6 +37,19 @@ export class JsonLogLoader implements ILogLoader {
     } catch {
       return []
     }
+  }
+
+  private flatten(obj: Record<string, unknown>, prefix = ''): Record<string, unknown> {
+    const result: Record<string, unknown> = {}
+    for (const [key, val] of Object.entries(obj)) {
+      const fullKey = prefix ? `${prefix}.${key}` : key
+      if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
+        Object.assign(result, this.flatten(val as Record<string, unknown>, fullKey))
+      } else {
+        result[fullKey] = val
+      }
+    }
+    return result
   }
 
   private parseNdjson(content: string): Record<string, unknown>[] {

@@ -1,4 +1,19 @@
 const ISO_RE = /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/
+const KIBANA_RE = /^[A-Za-z]{3} \d{1,2}, \d{4} @ \d{2}:\d{2}:\d{2}/
+const KIBANA_MONTHS: Record<string, number> = {
+  Jan: 0,
+  Feb: 1,
+  Mar: 2,
+  Apr: 3,
+  May: 4,
+  Jun: 5,
+  Jul: 6,
+  Aug: 7,
+  Sep: 8,
+  Oct: 9,
+  Nov: 10,
+  Dec: 11,
+}
 const MS_EPOCH_MIN = 1_000_000_000_000
 const MS_EPOCH_MAX = 9_999_999_999_999
 
@@ -15,9 +30,11 @@ const PRIORITY_NAMES = [
 
 function isTimestampValue(val: unknown): boolean {
   if (typeof val === 'string') {
-    if (!ISO_RE.test(val)) return false
-    const d = new Date(val)
-    return !isNaN(d.getTime())
+    if (ISO_RE.test(val)) {
+      const d = new Date(val)
+      return !isNaN(d.getTime())
+    }
+    return KIBANA_RE.test(val)
   }
   if (typeof val === 'number') {
     return val >= MS_EPOCH_MIN && val <= MS_EPOCH_MAX
@@ -70,9 +87,23 @@ export function detectTimestampField(entries: Record<string, unknown>[]): string
   return candidates[0] ?? null
 }
 
+function parseKibanaTimestamp(val: string): Date | null {
+  const m = val.match(/^([A-Za-z]{3}) (\d{1,2}), (\d{4}) @ (\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?/)
+  if (!m) return null
+  const monthIdx = KIBANA_MONTHS[m[1]]
+  if (monthIdx === undefined) return null
+  const ms = m[7] ? parseInt(m[7].padEnd(3, '0').slice(0, 3), 10) : 0
+  return new Date(Date.UTC(+m[3], monthIdx, +m[2], +m[4], +m[5], +m[6], ms))
+}
+
 export function parseTimestampValue(val: unknown): Date | null {
-  if (typeof val === 'string' || typeof val === 'number') {
-    const d = new Date(val as string | number)
+  if (typeof val === 'string') {
+    if (KIBANA_RE.test(val)) return parseKibanaTimestamp(val)
+    const d = new Date(val)
+    return isNaN(d.getTime()) ? null : d
+  }
+  if (typeof val === 'number') {
+    const d = new Date(val)
     return isNaN(d.getTime()) ? null : d
   }
   return null

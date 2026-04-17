@@ -7,10 +7,9 @@ A simple, browser-only SPA for analyzing log files. No server required — all p
 ## Features
 
 - Load multiple log files via drag-and-drop or file picker
-- Supported formats: **JSON array**, **NDJSON** (one JSON object per line), `.log` files
-- Automatically detects the timestamp field (ISO 8601 heuristic) and merges all files into a single chronological view
+- Supported formats: **JSON array**, **NDJSON** (one JSON object per line), `.log` files, **CSV** (with headers)
+- Automatically detects the timestamp field and merges all files into a single chronological view
 - Per-column text filtering (AND logic, case-insensitive)
-- CSV support coming soon
 
 ## Usage
 
@@ -23,23 +22,30 @@ A simple, browser-only SPA for analyzing log files. No server required — all p
 ## Supported log formats
 
 ### NDJSON (newline-delimited JSON)
-Each line is a separate JSON object:
+Each line is a separate JSON object. Nested objects are flattened to dot-notation (e.g. `mdc.traceId`):
 ```
 {"timestamp":"2024-01-15T10:00:00Z","level":"INFO","message":"Server started"}
-{"timestamp":"2024-01-15T10:00:01Z","level":"WARN","message":"High memory usage"}
+{"timestamp":"2024-01-15T10:00:01Z","level":"WARN","message":"High memory","mdc":{"traceId":"abc"}}
 ```
 
 ### JSON array
-A single JSON array of objects:
+A single JSON array of objects. Nested objects are flattened to dot-notation:
 ```json
 [
   {"timestamp": "2024-01-15T10:00:00Z", "level": "INFO", "message": "Server started"},
-  {"timestamp": "2024-01-15T10:00:01Z", "level": "WARN", "message": "High memory usage"}
+  {"timestamp": "2024-01-15T10:00:01Z", "level": "WARN", "message": "High memory"}
 ]
 ```
 
+### CSV
+A header row followed by data rows. Dot-notation headers (e.g. `mdc.traceId`) create nested objects; escape a literal dot with a backslash (`kubernetes\.pod_name` → field key `kubernetes.pod_name`).
+```
+timestamp,level,message,mdc.traceId
+2024-01-15T10:00:00Z,INFO,Server started,abc123
+```
+
 ### Timestamp detection
-The app scans field values and picks the first field where ≥80% of sampled entries contain a valid ISO 8601 timestamp. Common field names (`timestamp`, `time`, `@timestamp`, `ts`, `date`, `datetime`, `created_at`) are preferred. If no timestamp is detected, entries are shown in file order.
+The app scans field values and picks the first field where ≥80% of sampled entries contain a recognized timestamp. Supported formats: **ISO 8601** and **Kibana human-readable** (`Mar 27, 2026 @ 12:32:30.038`). Common field names (`timestamp`, `time`, `@timestamp`, `ts`, `date`, `datetime`, `created_at`) are preferred. If no timestamp is detected, entries are shown in file order.
 
 ## Development
 
