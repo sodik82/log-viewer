@@ -23,7 +23,7 @@ CI runs `lint` and `build` on every push; `deploy` auto-publishes to GitHub Page
 
 1. User drops/selects files → `DropZone` → `useLoadedFiles` hook reads them as text
 2. Each file is dispatched to the appropriate loader (`JsonLogLoader` or `CsvLogLoader`) based on extension
-3. Loader parses entries and calls `timestampDetector` to identify the timestamp field (ISO 8601 regex + priority names: `timestamp`, `time`, `@timestamp`, `ts`, `date`, `datetime`, `created_at`, `updated_at`; requires ≥80% hit rate across first 20 entries)
+3. Loader parses entries and calls `timestampDetector` to identify the timestamp field (ISO 8601 and Kibana human-readable format; priority names: `timestamp`, `time`, `@timestamp`, `ts`, `date`, `datetime`, `created_at`, `updated_at`; requires ≥80% hit rate across first 20 entries)
 4. Entries are enriched with internal fields: `_timestamp` (Date), `_sourceFile`, `_rawIndex`
 5. `useLogTable` derives columns, sorts all entries from all files chronologically, and applies case-insensitive AND filters
 6. `LogTable` renders the merged result as an HTML table with per-column filter inputs
@@ -35,9 +35,9 @@ CI runs `lint` and `build` on every push; `deploy` auto-publishes to GitHub Page
 | `src/App.tsx` | Top-level composition: DropZone + FileList + LogTable |
 | `src/hooks/useLoadedFiles.ts` | File state, FileReader orchestration |
 | `src/hooks/useLogTable.ts` | Memoized column derivation, sort, filter |
-| `src/loaders/JsonLogLoader.ts` | Parses JSON arrays and NDJSON; runs timestamp detection |
-| `src/loaders/CsvLogLoader.ts` | Stubbed — returns empty array (not yet implemented) |
-| `src/utils/timestampDetector.ts` | ISO 8601 heuristic for identifying the timestamp field |
+| `src/loaders/JsonLogLoader.ts` | Parses JSON arrays and NDJSON; flattens nested objects to dot-notation; runs timestamp detection |
+| `src/loaders/CsvLogLoader.ts` | Parses CSV with headers; dot-notation headers create nested objects; `\.` escapes a literal dot |
+| `src/utils/timestampDetector.ts` | Heuristic for identifying the timestamp field; supports ISO 8601 and Kibana format (`Mar 27, 2026 @ 12:32:30.038`) |
 | `src/utils/columnDeriver.ts` | Scans all entries; emits column list with priority ordering |
 | `src/types/log.ts` | Core interfaces: `LogEntry`, `ParseResult`, `LoadedFile`, `ILogLoader` |
 | `src/loaders/__tests__/JsonLogLoader.test.ts` | Unit tests for JSON/NDJSON loader |

@@ -45,11 +45,12 @@ describe('JsonLogLoader — NDJSON', () => {
     expect((e._timestamp as Date).toISOString()).toBe('2026-04-16T14:07:20.480Z')
   })
 
-  it('preserves DEBUG entry fields including nested mdc', () => {
+  it('flattens DEBUG entry nested mdc into dot-notation fields', () => {
     const e = result.entries[1]
     expect(e.level).toBe('DEBUG')
     expect(e.message).toBe('Loading 1 keys to the cache')
-    expect(e.mdc).toMatchObject({ traceId: '0f17be2f532881a0', spanId: '89d9f72552b6e1' })
+    expect(e['mdc.traceId']).toBe('0f17be2f532881a0')
+    expect(e['mdc.spanId']).toBe('89d9f72552b6e1')
   })
 })
 
