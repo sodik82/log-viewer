@@ -49,7 +49,7 @@ CI runs `lint` and `build` on every push; `deploy` auto-publishes to GitHub Page
 - **Internal fields** use `_` prefix (`_timestamp`, `_sourceFile`, `_rawIndex`) and are excluded from column derivation.
 - **Column priority**: `level`, `severity`, `message`, `msg`, `error`, `service`, `logger` always appear first (defined in `columnDeriver.ts`).
 - **Pluggable loaders**: New formats implement `ILogLoader`; file extension drives dispatch in `useLoadedFiles`.
-- **No runtime dependencies**: Only `react` and `react-dom` — no UI libraries, no utility packages.
+- **Browser-native**: All dependencies must run natively in the browser without a server.
 - **Prettier style**: No semicolons, single quotes, 100-char line width, ES5 trailing commas.
 - Unused variables must be prefixed with `_` to satisfy ESLint (`no-unused-vars` is an error).
 

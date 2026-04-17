@@ -119,6 +119,20 @@ describe('CsvLogLoader — Kibana format (escaped dot header, human-readable tim
   })
 })
 
+describe('CsvLogLoader — security', () => {
+  it('ignores __proto__ pollution attempt via header', () => {
+    const csv = '__proto__.polluted,level\ntrue,ERROR'
+    loader.parse(csv, 'evil.csv')
+    expect(({} as Record<string, unknown>)['polluted']).toBeUndefined()
+  })
+
+  it('ignores constructor.prototype pollution attempt via header', () => {
+    const csv = 'constructor.prototype.polluted,level\ntrue,ERROR'
+    loader.parse(csv, 'evil.csv')
+    expect(({} as Record<string, unknown>)['polluted']).toBeUndefined()
+  })
+})
+
 describe('CsvLogLoader — edge cases', () => {
   it('returns empty result for empty content', () => {
     const result = loader.parse('', 'empty.csv')

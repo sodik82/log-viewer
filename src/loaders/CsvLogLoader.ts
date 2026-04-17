@@ -1,3 +1,4 @@
+import Papa from 'papaparse'
 import type { ILogLoader, ParseResult } from '../types/log'
 import { detectTimestampField, parseTimestampValue } from '../utils/timestampDetector'
 
@@ -6,10 +7,23 @@ export class CsvLogLoader implements ILogLoader {
   readonly extensions = ['.csv']
 
   parse(content: string, fileName: string): ParseResult {
-    const trimmed = content.trim()
-    if (!trimmed) return { entries: [], timestampField: null }
+    const { data, errors } = Papa.parse<Record<string, string>>(content, {
+      header: true,
+      skipEmptyLines: true,
+      transformHeader: (h) => h, // keep raw header; we handle escaping below
+    })
 
-    const rawObjects = this.parseCsv(trimmed)
+    if (errors.length > 0 && data.length === 0) return { entries: [], timestampField: null }
+
+    const rawObjects = data.map((row) => {
+      const entry: Record<string, unknown> = {}
+      for (const [key, val] of Object.entries(row)) {
+        if (val === '') continue
+        this.setNested(entry, key, val)
+      }
+      return entry
+    })
+
     if (rawObjects.length === 0) return { entries: [], timestampField: null }
 
     const tsField = detectTimestampField(rawObjects)
@@ -24,68 +38,10 @@ export class CsvLogLoader implements ILogLoader {
     return { entries, timestampField: tsField }
   }
 
-  private parseCsv(content: string): Record<string, unknown>[] {
-    const lines = content.split('\n').map((l) => l.replace(/\r$/, ''))
-    const nonBlank = lines.filter((l) => l.trim() !== '')
-    if (nonBlank.length < 2) return []
-
-    const headers = this.splitRow(nonBlank[0])
-    const results: Record<string, unknown>[] = []
-
-    for (let i = 1; i < nonBlank.length; i++) {
-      const values = this.splitRow(nonBlank[i])
-      const entry: Record<string, unknown> = {}
-      for (let j = 0; j < headers.length; j++) {
-        const val = values[j] ?? ''
-        if (val === '') continue
-        this.setNested(entry, headers[j], val)
-      }
-      results.push(entry)
-    }
-
-    return results
-  }
-
-  private splitRow(row: string): string[] {
-    const fields: string[] = []
-    let i = 0
-    while (i <= row.length) {
-      if (i === row.length) {
-        fields.push('')
-        break
-      }
-      if (row[i] === '"') {
-        let field = ''
-        i++ // skip opening quote
-        while (i < row.length) {
-          if (row[i] === '"' && row[i + 1] === '"') {
-            field += '"'
-            i += 2
-          } else if (row[i] === '"') {
-            i++ // skip closing quote
-            break
-          } else {
-            field += row[i++]
-          }
-        }
-        fields.push(field)
-        if (row[i] === ',') i++
-      } else {
-        const end = row.indexOf(',', i)
-        if (end === -1) {
-          fields.push(row.slice(i))
-          break
-        }
-        fields.push(row.slice(i, end))
-        i = end + 1
-      }
-    }
-    return fields
-  }
-
   private setNested(obj: Record<string, unknown>, key: string, value: string): void {
     // Split on unescaped dots only; \. is a literal dot in the field name
     const parts = key.split(/(?<!\\)\./).map((p) => p.replace(/\\\./g, '.'))
+    if (parts.some((p) => p === '__proto__' || p === 'constructor' || p === 'prototype')) return
     let current = obj
     for (let i = 0; i < parts.length - 1; i++) {
       const part = parts[i]
