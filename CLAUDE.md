@@ -10,6 +10,7 @@ npm run build      # TypeScript check + production build → dist/
 npm run lint       # ESLint with zero-warning tolerance
 npm run lint:fix   # Prettier format + ESLint auto-fix
 npm run preview    # Preview production build locally
+npm test           # Run Vitest unit tests (vitest run)
 ```
 
 CI runs `lint` and `build` on every push; `deploy` auto-publishes to GitHub Pages on push to `main`.
@@ -39,6 +40,8 @@ CI runs `lint` and `build` on every push; `deploy` auto-publishes to GitHub Page
 | `src/utils/timestampDetector.ts` | ISO 8601 heuristic for identifying the timestamp field |
 | `src/utils/columnDeriver.ts` | Scans all entries; emits column list with priority ordering |
 | `src/types/log.ts` | Core interfaces: `LogEntry`, `ParseResult`, `LoadedFile`, `ILogLoader` |
+| `src/loaders/__tests__/JsonLogLoader.test.ts` | Unit tests for JSON/NDJSON loader |
+| `src/utils/__tests__/timestampDetector.test.ts` | Unit tests for timestamp field detection |
 
 ### Conventions
 
@@ -48,3 +51,7 @@ CI runs `lint` and `build` on every push; `deploy` auto-publishes to GitHub Page
 - **No runtime dependencies**: Only `react` and `react-dom` — no UI libraries, no utility packages.
 - **Prettier style**: No semicolons, single quotes, 100-char line width, ES5 trailing commas.
 - Unused variables must be prefixed with `_` to satisfy ESLint (`no-unused-vars` is an error).
+
+### Memory
+
+Update CLAUDE.md whenever significant architecture change is done or new npm scripts are added
