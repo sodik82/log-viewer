@@ -1,0 +1,41 @@
+.drop-zone {
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  padding: 24px 32px;
+  text-align: center;
+  background: #fafafa;
+  transition: border-color 0.15s, background 0.15s;
+  cursor: default;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.drop-zone--active {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.drop-zone__text {
+  font-size: 1rem;
+  color: #444;
+}
+
+.drop-zone__hint {
+  font-size: 0.8rem;
+  color: #999;
+}
+
+.drop-zone__btn {
+  background: none;
+  border: none;
+  color: #3b82f6;
+  cursor: pointer;
+  font-size: inherit;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.drop-zone__btn:hover {
+  color: #2563eb;
+}
