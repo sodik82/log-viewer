@@ -53,7 +53,7 @@ export const facetFilterFn: FilterFn<LogEntry> = (row, columnId, filterValue: Fa
 }
 facetFilterFn.autoRemove = (val: FacetFilterValue) => !val?.values?.length
 
-const PRESET_OFFSETS: Record<DateRangePreset, number> = {
+export const PRESET_OFFSETS: Record<DateRangePreset, number> = {
   last15m: 15 * 60 * 1000,
   last1h: 60 * 60 * 1000,
   last6h: 6 * 60 * 60 * 1000,
