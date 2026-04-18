@@ -53,6 +53,41 @@ CI runs `lint` and `build` on every push; `deploy` auto-publishes to GitHub Page
 - **Prettier style**: No semicolons, single quotes, 100-char line width, ES5 trailing commas.
 - Unused variables must be prefixed with `_` to satisfy ESLint (`no-unused-vars` is an error).
 
+### ESLint / React Compiler rules (enforced, zero-warning tolerance)
+
+The project uses `eslint-plugin-react-hooks@7` which includes React Compiler lint rules. These are strict:
+
+- **`react-hooks/refs`** — Do NOT read or write `ref.current` during render. Only access refs in event handlers and effects. Writing `timerRef.current = x` during render is also forbidden.
+- **`react-hooks/set-state-in-effect`** — Do NOT call `setState` inside a `useEffect` body. This rule flags cascading-render patterns. Use render-phase state updates instead (see below).
+- **`react-hooks/incompatible-library`** — TanStack Table (`useReactTable`) and TanStack Virtual (`useVirtualizer`) return objects with functions that can't be safely memoized by the React Compiler. Suppress with `// eslint-disable-next-line react-hooks/incompatible-library` on that one line.
+- **`prettier/prettier`** — ES5 `trailingComma` means trailing commas are allowed in arrays/objects but **not** in function call arguments. Avoid multi-line `useEffect(fn, [])` with a trailing comma after `[]`.
+
+### Deriving state from prop changes (no useEffect sync)
+
+When local component state must reset in response to a prop/external value change, use React's render-phase state update pattern instead of `useEffect`:
+
+```tsx
+const [prevCommitted, setPrevCommitted] = useState(externalValue)
+if (prevCommitted !== externalValue) {
+  setPrevCommitted(externalValue)
+  if (!externalValue) {
+    setLocalValue('')   // setState during render is intentional here
+  }
+}
+```
+
+React re-renders immediately without painting. The guard (`prevCommitted !== externalValue`) prevents infinite loops. For timer cancellation on external reset, use a separate `useEffect` that only calls `clearTimeout` (no setState).
+
+### Virtual scrolling
+
+`LogTable` uses `@tanstack/react-virtual` (`useVirtualizer`) with the **padding-rows** approach: two sentinel `<tr>` elements above and below the visible rows carry the missing height, so sticky `<thead>` and `overflow: auto` on `.log-table__scroll` continue to work without changes.
+
+### Filter performance
+
+- `TextFilterValue` carries a `compiledRegex?: RegExp` field. The regex is compiled once when the debounce fires in `TextFilter`, stored on the filter value object, and reused by `textFilterFn` — never compiled per row.
+- Text filters debounce 150 ms. Operator/negate changes cancel any in-flight debounce before applying immediately.
+- `isReDoSRisk(pattern)` in `filterFunctions.ts` detects nested quantifiers (`(a+)+` etc.) and blocks application of dangerous patterns.
+
 ### Memory
 
 Update CLAUDE.md whenever significant architecture change is done or new npm scripts are added
