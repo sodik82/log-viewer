@@ -1,11 +1,14 @@
-import { Fragment } from 'react'
+import { Fragment, useRef } from 'react'
 import { flexRender, type Column, type Table } from '@tanstack/react-table'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import type { LogEntry } from '../../types/log'
 import { TextFilter } from './filters/TextFilter'
 import { DateRangeFilter } from './filters/DateRangeFilter'
 import { FacetFilter } from './filters/FacetFilter'
 import { FilterPillBar } from './FilterPillBar'
 import './LogTable.css'
+
+const ROW_HEIGHT_ESTIMATE = 29
 
 interface Props {
   table: Table<LogEntry>
@@ -30,9 +33,30 @@ function renderFilter(column: Column<LogEntry, unknown>) {
 }
 
 export function LogTable({ table, columnIds, hasNoTimestamp }: Props) {
+  const scrollRef = useRef<HTMLDivElement>(null)
   const headers = table.getHeaderGroups()[0].headers
+  const rows = table.getRowModel().rows
   const filteredCount = table.getFilteredRowModel().rows.length
   const totalCount = table.getCoreRowModel().rows.length
+
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const rowVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => ROW_HEIGHT_ESTIMATE,
+    overscan: 10,
+    // Each virtual item is a <tbody> wrapping the data row + optional detail row.
+    // measureElement tracks the actual combined height so expanded rows don't cause
+    // scroll-position jumps.
+    measureElement: (el) => el.getBoundingClientRect().height,
+  })
+
+  const virtualItems = rowVirtualizer.getVirtualItems()
+  const paddingTop = virtualItems.length > 0 ? (virtualItems[0]?.start ?? 0) : 0
+  const paddingBottom =
+    virtualItems.length > 0
+      ? rowVirtualizer.getTotalSize() - (virtualItems[virtualItems.length - 1]?.end ?? 0)
+      : 0
 
   return (
     <div className="log-table-wrap">
@@ -40,7 +64,7 @@ export function LogTable({ table, columnIds, hasNoTimestamp }: Props) {
         <div className="log-table__notice">No timestamp field detected — showing file order.</div>
       )}
       <FilterPillBar table={table} />
-      <div className="log-table__scroll">
+      <div className="log-table__scroll" ref={scrollRef}>
         <table className="log-table">
           <thead>
             <tr>
@@ -66,10 +90,21 @@ export function LogTable({ table, columnIds, hasNoTimestamp }: Props) {
               ))}
             </tr>
           </thead>
-          <tbody>
-            {table.getRowModel().rows.map((row) => (
-              <Fragment key={row.id}>
-                <tr className="log-table__row">
+          {paddingTop > 0 && (
+            <tbody>
+              <tr>
+                <td colSpan={headers.length} style={{ height: paddingTop, padding: 0 }} />
+              </tr>
+            </tbody>
+          )}
+          {virtualItems.map((virtualRow) => {
+            const row = rows[virtualRow.index]
+            // Alternating row shade is driven by index since CSS nth-child counts
+            // within each <tbody> and would always see a single child.
+            const isAlt = virtualRow.index % 2 !== 0
+            return (
+              <tbody key={row.id} data-index={virtualRow.index} ref={rowVirtualizer.measureElement}>
+                <tr className={`log-table__row${isAlt ? ' log-table__row--alt' : ''}`}>
                   {row.getVisibleCells().map((cell) => (
                     <td key={cell.id} className="log-table__td">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -98,11 +133,18 @@ export function LogTable({ table, columnIds, hasNoTimestamp }: Props) {
                     </td>
                   </tr>
                 )}
-              </Fragment>
-            ))}
-          </tbody>
+              </tbody>
+            )
+          })}
+          {paddingBottom > 0 && (
+            <tbody>
+              <tr>
+                <td colSpan={headers.length} style={{ height: paddingBottom, padding: 0 }} />
+              </tr>
+            </tbody>
+          )}
         </table>
-        {table.getRowModel().rows.length === 0 && (
+        {rows.length === 0 && (
           <div className="log-table__empty">No rows match the current filters.</div>
         )}
       </div>
