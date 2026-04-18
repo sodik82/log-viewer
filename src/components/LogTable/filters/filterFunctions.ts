@@ -5,6 +5,7 @@ export type TextFilterValue = {
   operator: 'contains' | 'equals' | 'regex'
   negate: boolean
   value: string
+  compiledRegex?: RegExp
 }
 
 export type FacetFilterValue = {
@@ -23,17 +24,23 @@ export function normalizeValue(raw: unknown): string {
   return String(raw)
 }
 
+// Detects nested quantifiers that cause catastrophic backtracking: (a+)+, (a*)*, etc.
+export function isReDoSRisk(pattern: string): boolean {
+  return /\([^)]*[+*][^)]*\)[+*?{]/.test(pattern)
+}
+
 export const textFilterFn: FilterFn<LogEntry> = (row, columnId, filterValue: TextFilterValue) => {
   if (!filterValue?.value) return true
   const raw = row.getValue(columnId)
   const val = normalizeValue(raw)
-  const { operator, value, negate } = filterValue
+  const { operator, value, negate, compiledRegex } = filterValue
   let match: boolean
   if (operator === 'equals') {
     match = val.toLowerCase() === value.toLowerCase()
   } else if (operator === 'regex') {
     try {
-      match = new RegExp(value, 'i').test(val)
+      const re = compiledRegex ?? new RegExp(value, 'i')
+      match = re.test(val)
     } catch {
       match = true
     }
