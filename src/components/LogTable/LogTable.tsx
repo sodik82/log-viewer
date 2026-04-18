@@ -45,6 +45,10 @@ export function LogTable({ table, columnIds, hasNoTimestamp }: Props) {
     getScrollElement: () => scrollRef.current,
     estimateSize: () => ROW_HEIGHT_ESTIMATE,
     overscan: 10,
+    // Each virtual item is a <tbody> wrapping the data row + optional detail row.
+    // measureElement tracks the actual combined height so expanded rows don't cause
+    // scroll-position jumps.
+    measureElement: (el) => el.getBoundingClientRect().height,
   })
 
   const virtualItems = rowVirtualizer.getVirtualItems()
@@ -86,54 +90,59 @@ export function LogTable({ table, columnIds, hasNoTimestamp }: Props) {
               ))}
             </tr>
           </thead>
-          <tbody>
-            {paddingTop > 0 && (
+          {paddingTop > 0 && (
+            <tbody>
               <tr>
                 <td colSpan={headers.length} style={{ height: paddingTop, padding: 0 }} />
               </tr>
-            )}
-            {virtualItems.map((virtualRow) => {
-              const row = rows[virtualRow.index]
-              return (
-                <Fragment key={row.id}>
-                  <tr className="log-table__row">
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="log-table__td">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
+            </tbody>
+          )}
+          {virtualItems.map((virtualRow) => {
+            const row = rows[virtualRow.index]
+            // Alternating row shade is driven by index since CSS nth-child counts
+            // within each <tbody> and would always see a single child.
+            const isAlt = virtualRow.index % 2 !== 0
+            return (
+              <tbody key={row.id} data-index={virtualRow.index} ref={rowVirtualizer.measureElement}>
+                <tr className={`log-table__row${isAlt ? ' log-table__row--alt' : ''}`}>
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id} className="log-table__td">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+                {row.getIsExpanded() && (
+                  <tr className="log-table__detail-row">
+                    <td colSpan={headers.length} className="log-table__detail-cell">
+                      <div className="log-table__detail-panel">
+                        {columnIds.map((colId) => {
+                          const raw =
+                            colId === '_timestamp' ? row.original._timestamp : row.original[colId]
+                          return (
+                            <Fragment key={colId}>
+                              <span className="log-table__detail-key">
+                                {colId === '_timestamp' ? 'timestamp' : colId}
+                              </span>
+                              <pre className="log-table__detail-val">
+                                {renderExpandedValue(colId, raw)}
+                              </pre>
+                            </Fragment>
+                          )
+                        })}
+                      </div>
+                    </td>
                   </tr>
-                  {row.getIsExpanded() && (
-                    <tr className="log-table__detail-row">
-                      <td colSpan={headers.length} className="log-table__detail-cell">
-                        <div className="log-table__detail-panel">
-                          {columnIds.map((colId) => {
-                            const raw =
-                              colId === '_timestamp' ? row.original._timestamp : row.original[colId]
-                            return (
-                              <Fragment key={colId}>
-                                <span className="log-table__detail-key">
-                                  {colId === '_timestamp' ? 'timestamp' : colId}
-                                </span>
-                                <pre className="log-table__detail-val">
-                                  {renderExpandedValue(colId, raw)}
-                                </pre>
-                              </Fragment>
-                            )
-                          })}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
-              )
-            })}
-            {paddingBottom > 0 && (
+                )}
+              </tbody>
+            )
+          })}
+          {paddingBottom > 0 && (
+            <tbody>
               <tr>
                 <td colSpan={headers.length} style={{ height: paddingBottom, padding: 0 }} />
               </tr>
-            )}
-          </tbody>
+            </tbody>
+          )}
         </table>
         {rows.length === 0 && (
           <div className="log-table__empty">No rows match the current filters.</div>

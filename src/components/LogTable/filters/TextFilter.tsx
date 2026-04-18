@@ -113,7 +113,23 @@ export function TextFilter({ column }: Props) {
     if (timerRef.current) clearTimeout(timerRef.current)
     const newNegate = !negate
     setLocalNegate(newNegate)
-    if (localInputValue) applyFilter(localInputValue, operator, newNegate)
+    if (!localInputValue) return
+    // Recompile regex from current input — compiledRegexRef may be stale if the debounce
+    // hadn't fired yet when the user toggled negate.
+    if (operator === 'regex') {
+      if (isReDoSRisk(localInputValue)) {
+        setReDoSWarning(true)
+        return
+      }
+      try {
+        compiledRegexRef.current = new RegExp(localInputValue, 'i')
+        setInvalidRegex(false)
+      } catch {
+        setInvalidRegex(true)
+        return
+      }
+    }
+    applyFilter(localInputValue, operator, newNegate)
   }
 
   const hasError = invalidRegex || reDoSWarning

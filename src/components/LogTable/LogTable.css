@@ -53,7 +53,7 @@
   z-index: 2;
 }
 
-.log-table__row:nth-child(even) {
+.log-table__row--alt {
   background: #f8fafc;
 }
 
