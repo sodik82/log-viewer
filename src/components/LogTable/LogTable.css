@@ -273,35 +273,118 @@
   cursor: not-allowed;
 }
 
+/* ── NOT button (text filter) ──────────────────── */
+
+.log-filter__not-btn {
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  background: #fff;
+  font-size: 0.68rem;
+  padding: 2px 4px;
+  cursor: pointer;
+  color: #64748b;
+  font-family: inherit;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.log-filter__not-btn:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.log-filter__not-btn--active {
+  border-color: #ef4444;
+  background: #ef4444;
+  color: #fff;
+}
+
+/* ── date range presets ────────────────────────── */
+
+.log-filter__preset-row {
+  display: flex;
+  gap: 4px;
+  padding: 8px 8px 6px;
+  border-bottom: 1px solid #e2e8f0;
+  flex-wrap: wrap;
+}
+
+.log-filter__preset-btn {
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  background: #fff;
+  font-size: 0.72rem;
+  padding: 2px 6px;
+  cursor: pointer;
+  color: #64748b;
+  font-family: inherit;
+}
+
+.log-filter__preset-btn:hover {
+  border-color: #3b82f6;
+  color: #1e40af;
+}
+
+.log-filter__preset-btn--active {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  color: #1e40af;
+  font-weight: 600;
+}
+
 /* ── facet filter ──────────────────────────────── */
 
 .log-filter--facet {
   position: relative;
 }
 
-.log-filter__facet-input-wrap {
+.log-filter__facet-trigger-wrap {
   display: flex;
   align-items: center;
-  position: relative;
+  gap: 2px;
+}
+
+.log-filter__facet-trigger {
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  background: #fff;
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  cursor: pointer;
+  color: #64748b;
+  font-family: inherit;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.log-filter__facet-trigger:hover {
+  border-color: #3b82f6;
+}
+
+.log-filter__facet-trigger--active {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  color: #1e40af;
 }
 
 .log-filter__clear-btn {
-  position: absolute;
-  right: 4px;
   background: none;
   border: none;
   cursor: pointer;
   font-size: 0.85rem;
   color: #94a3b8;
-  padding: 0;
+  padding: 0 2px;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .log-filter__clear-btn:hover {
   color: #ef4444;
 }
 
-.log-filter__facet-list {
+.log-filter__facet-popover {
   position: absolute;
   top: calc(100% + 2px);
   left: 0;
@@ -310,20 +393,35 @@
   border: 1px solid #e2e8f0;
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  min-width: 180px;
+  max-width: 280px;
+}
+
+.log-filter__facet-popover-header {
+  display: flex;
+  gap: 4px;
+  padding: 6px 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.log-filter__facet-search {
+  flex: 1;
+  min-width: 0;
+  max-width: none !important;
+}
+
+.log-filter__facet-list {
   padding: 4px 0;
   margin: 0;
   list-style: none;
-  min-width: 120px;
-  max-width: 260px;
   max-height: 220px;
   overflow-y: auto;
 }
 
 .log-filter__facet-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   padding: 4px 10px;
   font-size: 0.78rem;
   cursor: pointer;
@@ -335,14 +433,98 @@
   background: #eff6ff;
 }
 
-.log-filter__facet-item--active {
-  background: #dbeafe;
-  color: #1e40af;
-  font-weight: 600;
+.log-filter__facet-item--checked {
+  background: #f0f9ff;
+}
+
+.log-filter__facet-checkbox {
+  flex-shrink: 0;
+  cursor: pointer;
+  pointer-events: none;
 }
 
 .log-filter__facet-count {
   font-size: 0.72rem;
   color: #94a3b8;
   flex-shrink: 0;
+  margin-left: auto;
+}
+
+.log-filter__facet-empty {
+  padding: 8px 10px;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.log-filter__facet-item--unset {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.log-filter__facet-item--unset.log-filter__facet-item--checked {
+  color: #1e40af;
+  font-style: italic;
+}
+
+/* ── filter pill bar ───────────────────────────── */
+
+.filter-pill-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 4px 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.78rem;
+}
+
+.filter-pill-bar__label {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  padding: 2px 4px 2px 8px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.filter-pill__remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #60a5fa;
+  font-size: 0.9rem;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+.filter-pill__remove:hover {
+  color: #1d4ed8;
+}
+
+.filter-pill-bar__clear-all {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  padding: 2px 4px;
+  margin-left: auto;
+  font-family: inherit;
+}
+
+.filter-pill-bar__clear-all:hover {
+  color: #ef4444;
 }

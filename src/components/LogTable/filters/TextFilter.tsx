@@ -8,34 +8,42 @@ interface Props {
 }
 
 export function TextFilter({ column }: Props) {
-  const filterValue = (column.getFilterValue() as TextFilterValue) ?? {
-    operator: 'contains' as const,
-    value: '',
-  }
+  const filterValue = column.getFilterValue() as TextFilterValue | undefined
+  const [localNegate, setLocalNegate] = useState(false)
   const [invalidRegex, setInvalidRegex] = useState(false)
 
-  function handleOperatorChange(operator: TextFilterValue['operator']) {
+  const operator = filterValue?.operator ?? 'contains'
+  const value = filterValue?.value ?? ''
+  const negate = filterValue?.negate ?? localNegate
+
+  function handleOperatorChange(op: TextFilterValue['operator']) {
     setInvalidRegex(false)
-    column.setFilterValue(filterValue.value ? { operator, value: filterValue.value } : undefined)
+    if (value) column.setFilterValue({ operator: op, negate, value })
   }
 
-  function handleValueChange(value: string) {
-    if (filterValue.operator === 'regex') {
+  function handleValueChange(newValue: string) {
+    if (operator === 'regex') {
       try {
-        new RegExp(value)
+        new RegExp(newValue)
         setInvalidRegex(false)
       } catch {
         setInvalidRegex(true)
       }
     }
-    column.setFilterValue(value ? { operator: filterValue.operator, value } : undefined)
+    column.setFilterValue(newValue ? { operator, negate, value: newValue } : undefined)
+  }
+
+  function handleNegateToggle() {
+    const newNegate = !negate
+    setLocalNegate(newNegate)
+    if (value) column.setFilterValue({ operator, negate: newNegate, value })
   }
 
   return (
     <div className="log-filter log-filter--text">
       <select
         className="log-filter__op"
-        value={filterValue.operator}
+        value={operator}
         onChange={(e) => handleOperatorChange(e.target.value as TextFilterValue['operator'])}
         title="filter operator"
       >
@@ -47,9 +55,17 @@ export function TextFilter({ column }: Props) {
         className={`log-filter__input${invalidRegex ? ' log-filter__input--error' : ''}`}
         type="text"
         placeholder="filter…"
-        value={filterValue.value}
+        value={value}
         onChange={(e) => handleValueChange(e.target.value)}
       />
+      <button
+        className={`log-filter__not-btn${negate ? ' log-filter__not-btn--active' : ''}`}
+        onClick={handleNegateToggle}
+        type="button"
+        title="negate filter"
+      >
+        NOT
+      </button>
     </div>
   )
 }
