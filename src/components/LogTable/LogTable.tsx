@@ -11,10 +11,11 @@ import {
   type Column,
 } from '@tanstack/react-table'
 import type { LogEntry } from '../../types/log'
-import { textFilterFn, dateRangeFilterFn } from './filters/filterFunctions'
+import { textFilterFn, facetFilterFn, dateRangeFilterFn } from './filters/filterFunctions'
 import { TextFilter } from './filters/TextFilter'
 import { DateRangeFilter } from './filters/DateRangeFilter'
 import { FacetFilter } from './filters/FacetFilter'
+import { FilterPillBar } from './FilterPillBar'
 import './LogTable.css'
 
 const FACET_THRESHOLD = 20
@@ -84,7 +85,12 @@ export function LogTable({ data, columnIds, hasNoTimestamp, cellRenderers }: Pro
       id: colId,
       accessorFn: (row) => (colId === '_timestamp' ? row._timestamp : row[colId]),
       header: colId === '_timestamp' ? 'timestamp' : colId,
-      filterFn: colId === '_timestamp' ? dateRangeFilterFn : textFilterFn,
+      filterFn:
+        colId === '_timestamp'
+          ? dateRangeFilterFn
+          : facetColumns.has(colId)
+            ? facetFilterFn
+            : textFilterFn,
       meta: {
         filterType:
           colId === '_timestamp'
@@ -122,6 +128,7 @@ export function LogTable({ data, columnIds, hasNoTimestamp, cellRenderers }: Pro
       {hasNoTimestamp && (
         <div className="log-table__notice">No timestamp field detected — showing file order.</div>
       )}
+      <FilterPillBar table={table} />
       <div className="log-table__scroll">
         <table className="log-table">
           <thead>
