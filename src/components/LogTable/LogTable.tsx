@@ -11,10 +11,11 @@ import {
   type Column,
 } from '@tanstack/react-table'
 import type { LogEntry } from '../../types/log'
-import { textFilterFn, dateRangeFilterFn } from './filters/filterFunctions'
+import { textFilterFn, facetFilterFn, dateRangeFilterFn } from './filters/filterFunctions'
 import { TextFilter } from './filters/TextFilter'
 import { DateRangeFilter } from './filters/DateRangeFilter'
 import { FacetFilter } from './filters/FacetFilter'
+import { FilterPillBar } from './FilterPillBar'
 import './LogTable.css'
 
 const FACET_THRESHOLD = 20
@@ -38,17 +39,20 @@ function renderCellValue(colId: string, value: unknown): string {
   return String(value)
 }
 
+function renderExpandedValue(colId: string, value: unknown): string {
+  if (colId === '_timestamp') {
+    return value instanceof Date ? value.toISOString() : ''
+  }
+  if (value === null || value === undefined) return ''
+  if (typeof value === 'object') return JSON.stringify(value, null, 2)
+  return String(value)
+}
+
 function renderFilter(column: Column<LogEntry, unknown>) {
   const filterType = column.columnDef.meta?.filterType
   if (filterType === 'dateRange') return <DateRangeFilter column={column} />
   if (filterType === 'facet') return <FacetFilter column={column} />
   return <TextFilter column={column} />
-}
-
-function getDisplayEntry(entry: LogEntry): Record<string, unknown> {
-  const result: Record<string, unknown> = { ...entry }
-  delete result['_rawIndex']
-  return result
 }
 
 export function LogTable({ data, columnIds, hasNoTimestamp, cellRenderers }: Props) {
@@ -84,7 +88,12 @@ export function LogTable({ data, columnIds, hasNoTimestamp, cellRenderers }: Pro
       id: colId,
       accessorFn: (row) => (colId === '_timestamp' ? row._timestamp : row[colId]),
       header: colId === '_timestamp' ? 'timestamp' : colId,
-      filterFn: colId === '_timestamp' ? dateRangeFilterFn : textFilterFn,
+      filterFn:
+        colId === '_timestamp'
+          ? dateRangeFilterFn
+          : facetColumns.has(colId)
+            ? facetFilterFn
+            : textFilterFn,
       meta: {
         filterType:
           colId === '_timestamp'
@@ -122,6 +131,7 @@ export function LogTable({ data, columnIds, hasNoTimestamp, cellRenderers }: Pro
       {hasNoTimestamp && (
         <div className="log-table__notice">No timestamp field detected — showing file order.</div>
       )}
+      <FilterPillBar table={table} />
       <div className="log-table__scroll">
         <table className="log-table">
           <thead>
@@ -161,9 +171,22 @@ export function LogTable({ data, columnIds, hasNoTimestamp, cellRenderers }: Pro
                 {row.getIsExpanded() && (
                   <tr className="log-table__detail-row">
                     <td colSpan={columns.length} className="log-table__detail-cell">
-                      <pre className="log-table__detail-json">
-                        {JSON.stringify(getDisplayEntry(row.original), null, 2)}
-                      </pre>
+                      <div className="log-table__detail-panel">
+                        {columnIds.map((colId) => {
+                          const raw =
+                            colId === '_timestamp' ? row.original._timestamp : row.original[colId]
+                          return (
+                            <Fragment key={colId}>
+                              <span className="log-table__detail-key">
+                                {colId === '_timestamp' ? 'timestamp' : colId}
+                              </span>
+                              <pre className="log-table__detail-val">
+                                {renderExpandedValue(colId, raw)}
+                              </pre>
+                            </Fragment>
+                          )
+                        })}
+                      </div>
                     </td>
                   </tr>
                 )}
