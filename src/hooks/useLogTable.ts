@@ -19,7 +19,7 @@ export function useLogTable(files: LoadedFile[]) {
 
   const hasNoTimestamp = files.length > 0 && allEntries.every((e) => e._timestamp === null)
 
-  return { sorted, columnIds, hasNoTimestamp }
+  return { sorted, columnIds, hasNoTimestamp, allEntries }
 }
 
 function compareBySource(a: LogEntry, b: LogEntry): number {

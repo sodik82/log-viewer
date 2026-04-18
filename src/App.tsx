@@ -1,15 +1,28 @@
+import { useCallback } from 'react'
 import { DropZone } from './components/DropZone/DropZone'
 import { FileList } from './components/FileList/FileList'
 import { LogTable } from './components/LogTable/LogTable'
+import { TimeHistogram } from './components/TimeHistogram/TimeHistogram'
 import { useLoadedFiles } from './hooks/useLoadedFiles'
 import { useLogTable } from './hooks/useLogTable'
+import { useLogTableInstance } from './hooks/useLogTableInstance'
+import type { DateRangeFilterValue } from './components/LogTable/filters/filterFunctions'
 import './App.css'
 
 export function App() {
   const { files, addFiles, removeFile, clearAll } = useLoadedFiles()
-  const { sorted, columnIds, hasNoTimestamp } = useLogTable(files)
+  const { sorted, columnIds, hasNoTimestamp, allEntries } = useLogTable(files)
+  const table = useLogTableInstance(sorted, columnIds)
 
   const hasEntries = files.some((f) => f.entries.length > 0)
+  const hasTimestamps = allEntries.some((e) => e._timestamp !== null)
+
+  const timestampCol = table.getColumn('_timestamp')
+  const filterValue = timestampCol?.getFilterValue() as DateRangeFilterValue | undefined
+  const handleFilterChange = useCallback(
+    (v: DateRangeFilterValue | undefined) => timestampCol?.setFilterValue(v),
+    [timestampCol]
+  )
 
   return (
     <div className="app">
@@ -19,8 +32,15 @@ export function App() {
       <main className="app__main">
         <DropZone onFiles={addFiles} />
         <FileList files={files} onRemove={removeFile} onClear={clearAll} />
+        {hasEntries && hasTimestamps && (
+          <TimeHistogram
+            entries={allEntries}
+            filterValue={filterValue}
+            onFilterChange={handleFilterChange}
+          />
+        )}
         {hasEntries ? (
-          <LogTable data={sorted} columnIds={columnIds} hasNoTimestamp={hasNoTimestamp} />
+          <LogTable table={table} columnIds={columnIds} hasNoTimestamp={hasNoTimestamp} />
         ) : files.length === 0 ? (
           <div className="app__empty">Load one or more log files to get started.</div>
         ) : null}
