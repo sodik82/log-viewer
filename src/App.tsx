@@ -5,7 +5,7 @@ import { LogTable } from './components/LogTable/LogTable'
 import { TimeHistogram } from './components/TimeHistogram/TimeHistogram'
 import { useLoadedFiles } from './hooks/useLoadedFiles'
 import { useLogTable } from './hooks/useLogTable'
-import { useLogTableInstance } from './hooks/useLogTableInstance.tsx'
+import { useLogTableInstance } from './hooks/useLogTableInstance'
 import type { DateRangeFilterValue } from './components/LogTable/filters/filterFunctions'
 import './App.css'
 
