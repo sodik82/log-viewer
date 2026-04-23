@@ -11,8 +11,8 @@ import './App.css'
 
 export function App() {
   const { files, addFiles, removeFile, clearAll } = useLoadedFiles()
-  const { sorted, columnIds, hasNoTimestamp, allEntries } = useLogTable(files)
-  const table = useLogTableInstance(sorted, columnIds)
+  const { sorted, columns, hasNoTimestamp, allEntries } = useLogTable(files)
+  const table = useLogTableInstance(sorted, columns)
 
   const hasEntries = files.some((f) => f.entries.length > 0)
   const hasTimestamps = allEntries.some((e) => e._timestamp !== null)
@@ -40,7 +40,7 @@ export function App() {
           />
         )}
         {hasEntries ? (
-          <LogTable table={table} columnIds={columnIds} hasNoTimestamp={hasNoTimestamp} />
+          <LogTable table={table} columns={columns} hasNoTimestamp={hasNoTimestamp} />
         ) : files.length === 0 ? (
           <div className="app__empty">Load one or more log files to get started.</div>
         ) : null}

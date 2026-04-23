@@ -9,7 +9,7 @@ import {
   type ColumnDef,
   type Table,
 } from '@tanstack/react-table'
-import type { LogEntry } from '../types/log'
+import type { LogEntry, ColumnMeta } from '../types/log'
 import {
   textFilterFn,
   facetFilterFn,
@@ -32,18 +32,18 @@ function renderCellValue(colId: string, value: unknown): string {
 
 export function useLogTableInstance(
   data: LogEntry[],
-  columnIds: string[],
+  columnMetas: ColumnMeta[],
   cellRenderers?: Record<string, (value: unknown) => React.ReactNode>
 ): Table<LogEntry> {
   const facetColumns = useMemo(() => {
     const facets = new Set<string>()
-    for (const colId of columnIds) {
+    for (const { id: colId } of columnMetas) {
       if (colId === '_timestamp') continue
       const distinct = new Set(data.map((e) => String(e[colId] ?? '')))
       if (distinct.size > 0 && distinct.size <= FACET_THRESHOLD) facets.add(colId)
     }
     return facets
-  }, [columnIds, data])
+  }, [columnMetas, data])
 
   const columns = useMemo<ColumnDef<LogEntry>[]>(() => {
     const expandCol: ColumnDef<LogEntry> = {
@@ -63,10 +63,11 @@ export function useLogTableInstance(
       ),
     }
 
-    const dataCols: ColumnDef<LogEntry>[] = columnIds.map((colId) => ({
+    const dataCols: ColumnDef<LogEntry>[] = columnMetas.map(({ id: colId, width }) => ({
       id: colId,
       accessorFn: (row) => (colId === '_timestamp' ? row._timestamp : row[colId]),
       header: colId === '_timestamp' ? 'timestamp' : colId,
+      size: width,
       filterFn:
         colId === '_timestamp'
           ? dateRangeFilterFn
@@ -89,7 +90,7 @@ export function useLogTableInstance(
     }))
 
     return [expandCol, ...dataCols]
-  }, [columnIds, facetColumns, cellRenderers])
+  }, [columnMetas, facetColumns, cellRenderers])
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
