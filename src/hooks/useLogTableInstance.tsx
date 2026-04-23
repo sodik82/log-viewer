@@ -12,7 +12,7 @@ import {
 import type { LogEntry, ColumnMeta } from '../types/log'
 import {
   textFilterFn,
-  facetFilterFn,
+  smartFilterFn,
   dateRangeFilterFn,
 } from '../components/LogTable/filters/filterFunctions'
 
@@ -72,7 +72,7 @@ export function useLogTableInstance(
         colId === '_timestamp'
           ? dateRangeFilterFn
           : facetColumns.has(colId)
-            ? facetFilterFn
+            ? smartFilterFn
             : textFilterFn,
       meta: {
         filterType:

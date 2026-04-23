@@ -176,9 +176,17 @@
 /* ── text filter ───────────────────────────────── */
 
 .log-filter--text {
-  display: flex;
-  align-items: center;
-  gap: 2px;
+  position: relative;
+}
+
+.log-filter__text-body {
+  padding: 4px 8px 8px;
+}
+
+.log-filter__text-body .log-filter__input {
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
 }
 
 .log-filter__op {

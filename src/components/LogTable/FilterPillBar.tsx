@@ -25,6 +25,11 @@ const OP_LABELS: Record<string, string> = {
   regex: '~=',
 }
 
+function textPillLabel(colId: string, fv: TextFilterValue): string {
+  const op = OP_LABELS[fv.operator] ?? fv.operator
+  return `${colId} ${fv.negate ? 'NOT ' : ''}${op} "${fv.value}"`
+}
+
 function pillLabel(colId: string, filterType: string | undefined, filterValue: unknown): string {
   if (filterType === 'dateRange') {
     const fv = filterValue as DateRangeFilterValue
@@ -33,15 +38,15 @@ function pillLabel(colId: string, filterType: string | undefined, filterValue: u
     const toStr = fv.to ? format(fv.to, 'MM/dd HH:mm:ss') : '…'
     return `${colId}: ${fromStr} – ${toStr}`
   }
-  if (filterType === 'facet') {
-    const fv = filterValue as FacetFilterValue
-    const qualifier = fv.mode === 'exclude' ? 'NOT IN' : 'IN'
-    const valLabels = fv.values.map((v) => (v === '' ? '(unset)' : v))
-    return `${colId} ${qualifier} [${valLabels.join(', ')}]`
+  // Duck-type: TextFilterValue has `operator`; works for both 'text' columns and facet
+  // columns that have been switched to text-search mode.
+  if (filterValue && typeof filterValue === 'object' && 'operator' in filterValue) {
+    return textPillLabel(colId, filterValue as TextFilterValue)
   }
-  const fv = filterValue as TextFilterValue
-  const op = OP_LABELS[fv.operator] ?? fv.operator
-  return `${colId} ${fv.negate ? 'NOT ' : ''}${op} "${fv.value}"`
+  const fv = filterValue as FacetFilterValue
+  const qualifier = fv.mode === 'exclude' ? 'NOT IN' : 'IN'
+  const valLabels = fv.values.map((v) => (v === '' ? '(unset)' : v))
+  return `${colId} ${qualifier} [${valLabels.join(', ')}]`
 }
 
 export function FilterPillBar({ table }: Props) {
