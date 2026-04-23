@@ -1,24 +1,25 @@
 import { useState, useEffect, useRef } from 'react'
 import type { Column } from '@tanstack/react-table'
 import type { LogEntry } from '../../../types/log'
-import { isReDoSRisk, type TextFilterValue } from './filterFunctions'
+import {
+  DEBOUNCE_MS,
+  tryCompileRegex,
+  textFilterTriggerLabel,
+  type TextFilterValue,
+} from './filterFunctions'
+import { FilterTrigger, TextOpOptions } from './FilterTrigger'
 
 interface Props {
   column: Column<LogEntry, unknown>
-}
-
-const DEBOUNCE_MS = 150
-
-const OP_SHORT: Record<TextFilterValue['operator'], string> = {
-  contains: '~',
-  equals: '=',
-  regex: '.*',
 }
 
 export function TextFilter({ column }: Props) {
   const [open, setOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
   const filterValue = column.getFilterValue() as TextFilterValue | undefined
+  const [localOperator, setLocalOperator] = useState<TextFilterValue['operator']>(
+    filterValue?.operator ?? 'contains'
+  )
   const [localNegate, setLocalNegate] = useState(false)
   const [localInputValue, setLocalInputValue] = useState(filterValue?.value ?? '')
   const [invalidRegex, setInvalidRegex] = useState(false)
@@ -61,7 +62,7 @@ export function TextFilter({ column }: Props) {
     []
   )
 
-  const operator = filterValue?.operator ?? 'contains'
+  const operator = filterValue?.operator ?? localOperator
   const negate = filterValue?.negate ?? localNegate
 
   function applyFilter(val: string, op: TextFilterValue['operator'], neg: boolean) {
@@ -78,20 +79,18 @@ export function TextFilter({ column }: Props) {
   }
 
   function handleOperatorChange(op: TextFilterValue['operator']) {
+    setLocalOperator(op)
     if (timerRef.current) clearTimeout(timerRef.current)
     setInvalidRegex(false)
     setReDoSWarning(false)
     if (op === 'regex' && localInputValue) {
-      if (isReDoSRisk(localInputValue)) {
-        setReDoSWarning(true)
+      const result = tryCompileRegex(localInputValue)
+      if (!result.ok) {
+        if (result.error === 'redos') setReDoSWarning(true)
+        else setInvalidRegex(true)
         return
       }
-      try {
-        compiledRegexRef.current = new RegExp(localInputValue, 'i')
-      } catch {
-        setInvalidRegex(true)
-        return
-      }
+      compiledRegexRef.current = result.regex
     }
     if (localInputValue) applyFilter(localInputValue, op, negate)
   }
@@ -107,16 +106,13 @@ export function TextFilter({ column }: Props) {
         return
       }
       if (operator === 'regex') {
-        if (isReDoSRisk(newValue)) {
-          setReDoSWarning(true)
+        const result = tryCompileRegex(newValue)
+        if (!result.ok) {
+          if (result.error === 'redos') setReDoSWarning(true)
+          else setInvalidRegex(true)
           return
         }
-        try {
-          compiledRegexRef.current = new RegExp(newValue, 'i')
-        } catch {
-          setInvalidRegex(true)
-          return
-        }
+        compiledRegexRef.current = result.regex
       }
       applyFilter(newValue, operator, negate)
     }, DEBOUNCE_MS)
@@ -130,17 +126,14 @@ export function TextFilter({ column }: Props) {
     // Recompile regex from current input — compiledRegexRef may be stale if the debounce
     // hadn't fired yet when the user toggled negate.
     if (operator === 'regex') {
-      if (isReDoSRisk(localInputValue)) {
-        setReDoSWarning(true)
+      const result = tryCompileRegex(localInputValue)
+      if (!result.ok) {
+        if (result.error === 'redos') setReDoSWarning(true)
+        else setInvalidRegex(true)
         return
       }
-      try {
-        compiledRegexRef.current = new RegExp(localInputValue, 'i')
-        setInvalidRegex(false)
-      } catch {
-        setInvalidRegex(true)
-        return
-      }
+      compiledRegexRef.current = result.regex
+      setInvalidRegex(false)
     }
     applyFilter(localInputValue, operator, newNegate)
   }
@@ -157,26 +150,14 @@ export function TextFilter({ column }: Props) {
     ? 'Pattern may cause catastrophic backtracking — simplify the regex'
     : undefined
 
-  const triggerLabel = filterValue
-    ? `${filterValue.negate ? 'NOT ' : ''}${OP_SHORT[filterValue.operator]} ${filterValue.value}`
-    : '(any value)'
-
   return (
     <div className="log-filter log-filter--text" ref={wrapRef}>
-      <div className="log-filter__facet-trigger-wrap">
-        <button
-          className={`log-filter__facet-trigger${filterValue ? ' log-filter__facet-trigger--active' : ''}`}
-          onClick={() => setOpen((v) => !v)}
-          type="button"
-        >
-          {triggerLabel}
-        </button>
-        {filterValue && (
-          <button className="log-filter__clear-btn" onClick={handleClear} type="button">
-            ×
-          </button>
-        )}
-      </div>
+      <FilterTrigger
+        label={filterValue ? textFilterTriggerLabel(filterValue) : '(any value)'}
+        active={!!filterValue}
+        onToggle={() => setOpen((v) => !v)}
+        onClear={handleClear}
+      />
       {open && (
         <div className="log-filter__facet-popover">
           <div className="log-filter__facet-popover-header">
@@ -185,9 +166,7 @@ export function TextFilter({ column }: Props) {
               value={operator}
               onChange={(e) => handleOperatorChange(e.target.value as TextFilterValue['operator'])}
             >
-              <option value="contains">contains (~)</option>
-              <option value="equals">exact (=)</option>
-              <option value="regex">regex (.*)</option>
+              <TextOpOptions />
             </select>
             <button
               className={`log-filter__not-btn${negate ? ' log-filter__not-btn--active' : ''}`}

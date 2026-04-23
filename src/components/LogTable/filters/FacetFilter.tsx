@@ -3,23 +3,18 @@ import type { Column } from '@tanstack/react-table'
 import type { LogEntry } from '../../../types/log'
 import {
   normalizeValue,
-  isReDoSRisk,
+  DEBOUNCE_MS,
+  tryCompileRegex,
+  textFilterTriggerLabel,
   type FacetFilterValue,
   type TextFilterValue,
 } from './filterFunctions'
+import { FilterTrigger, TextOpOptions } from './FilterTrigger'
 
 type CombinedMode = FacetFilterValue['mode'] | TextFilterValue['operator']
 
 interface Props {
   column: Column<LogEntry, unknown>
-}
-
-const DEBOUNCE_MS = 150
-
-const OP_SHORT: Record<TextFilterValue['operator'], string> = {
-  contains: '~',
-  equals: '=',
-  regex: '.*',
 }
 
 function isFacetMode(mode: CombinedMode): mode is FacetFilterValue['mode'] {
@@ -78,7 +73,6 @@ export function FacetFilter({ column }: Props) {
   if (prevFilterExists !== !!filterValue) {
     setPrevFilterExists(!!filterValue)
     if (!filterValue) {
-      setLocalMode('include')
       setLocalTextValue('')
       setInvalidRegex(false)
       setReDoSWarning(false)
@@ -176,18 +170,14 @@ export function FacetFilter({ column }: Props) {
       setInvalidRegex(false)
       setReDoSWarning(false)
       if (op === 'regex') {
-        if (isReDoSRisk(localTextValue)) {
-          setReDoSWarning(true)
+        const result = tryCompileRegex(localTextValue)
+        if (!result.ok) {
+          if (result.error === 'redos') setReDoSWarning(true)
+          else setInvalidRegex(true)
           setLocalMode(newMode)
           return
         }
-        try {
-          compiledRegexRef.current = new RegExp(localTextValue, 'i')
-        } catch {
-          setInvalidRegex(true)
-          setLocalMode(newMode)
-          return
-        }
+        compiledRegexRef.current = result.regex
       }
       applyTextFilter(localTextValue, op, textNegate)
     }
@@ -206,16 +196,13 @@ export function FacetFilter({ column }: Props) {
         return
       }
       if (textOperator === 'regex') {
-        if (isReDoSRisk(newValue)) {
-          setReDoSWarning(true)
+        const result = tryCompileRegex(newValue)
+        if (!result.ok) {
+          if (result.error === 'redos') setReDoSWarning(true)
+          else setInvalidRegex(true)
           return
         }
-        try {
-          compiledRegexRef.current = new RegExp(newValue, 'i')
-        } catch {
-          setInvalidRegex(true)
-          return
-        }
+        compiledRegexRef.current = result.regex
       }
       applyTextFilter(newValue, textOperator, textNegate)
     }, DEBOUNCE_MS)
@@ -227,17 +214,14 @@ export function FacetFilter({ column }: Props) {
     setLocalNegate(newNegate)
     if (!localTextValue) return
     if (textOperator === 'regex') {
-      if (isReDoSRisk(localTextValue)) {
-        setReDoSWarning(true)
+      const result = tryCompileRegex(localTextValue)
+      if (!result.ok) {
+        if (result.error === 'redos') setReDoSWarning(true)
+        else setInvalidRegex(true)
         return
       }
-      try {
-        compiledRegexRef.current = new RegExp(localTextValue, 'i')
-        setInvalidRegex(false)
-      } catch {
-        setInvalidRegex(true)
-        return
-      }
+      compiledRegexRef.current = result.regex
+      setInvalidRegex(false)
     }
     applyTextFilter(localTextValue, textOperator, newNegate)
   }
@@ -251,9 +235,7 @@ export function FacetFilter({ column }: Props) {
 
   function getTriggerLabel(): string {
     if (!filterValue) return '(any value)'
-    if ('operator' in filterValue) {
-      return `${filterValue.negate ? 'NOT ' : ''}${OP_SHORT[filterValue.operator]} ${filterValue.value}`
-    }
+    if ('operator' in filterValue) return textFilterTriggerLabel(filterValue as TextFilterValue)
     const fv = filterValue as FacetFilterValue
     return `${fv.mode === 'exclude' ? 'NOT IN' : 'IN'} [${fv.values.map((v) => (v === '' ? '(unset)' : v)).join(', ')}]`
   }
@@ -265,20 +247,12 @@ export function FacetFilter({ column }: Props) {
 
   return (
     <div className="log-filter log-filter--facet" ref={wrapRef}>
-      <div className="log-filter__facet-trigger-wrap">
-        <button
-          className={`log-filter__facet-trigger${filterValue ? ' log-filter__facet-trigger--active' : ''}`}
-          onClick={() => setOpen((v) => !v)}
-          type="button"
-        >
-          {getTriggerLabel()}
-        </button>
-        {filterValue && (
-          <button className="log-filter__clear-btn" onClick={handleClear} type="button">
-            ×
-          </button>
-        )}
-      </div>
+      <FilterTrigger
+        label={getTriggerLabel()}
+        active={!!filterValue}
+        onToggle={() => setOpen((v) => !v)}
+        onClear={handleClear}
+      />
       {open && (
         <div className="log-filter__facet-popover">
           <div className="log-filter__facet-popover-header">
@@ -292,9 +266,7 @@ export function FacetFilter({ column }: Props) {
                 <option value="exclude">Exclude</option>
               </optgroup>
               <optgroup label="Text search">
-                <option value="contains">contains (~)</option>
-                <option value="equals">exact (=)</option>
-                <option value="regex">regex (.*)</option>
+                <TextOpOptions />
               </optgroup>
             </select>
             {isFacetMode(localMode) ? (

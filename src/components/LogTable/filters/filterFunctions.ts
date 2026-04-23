@@ -18,6 +18,18 @@ export type DateRangeFilterValue =
   | { type: 'preset'; preset: DateRangePreset }
   | { type: 'custom'; from: Date | null; to: Date | null }
 
+export const DEBOUNCE_MS = 150
+
+export const OP_SHORT: Record<TextFilterValue['operator'], string> = {
+  contains: '~',
+  equals: '=',
+  regex: '.*',
+}
+
+export function textFilterTriggerLabel(fv: TextFilterValue): string {
+  return `${fv.negate ? 'NOT ' : ''}${OP_SHORT[fv.operator]} ${fv.value}`
+}
+
 export function normalizeValue(raw: unknown): string {
   if (raw === undefined || raw === null || raw === '') return ''
   if (typeof raw === 'object') return JSON.stringify(raw)
@@ -27,6 +39,19 @@ export function normalizeValue(raw: unknown): string {
 // Detects nested quantifiers that cause catastrophic backtracking: (a+)+, (a*)*, etc.
 export function isReDoSRisk(pattern: string): boolean {
   return /\([^)]*[+*][^)]*\)[+*?{]/.test(pattern)
+}
+
+export type RegexCompileResult =
+  | { ok: true; regex: RegExp }
+  | { ok: false; error: 'redos' | 'invalid' }
+
+export function tryCompileRegex(pattern: string): RegexCompileResult {
+  if (isReDoSRisk(pattern)) return { ok: false, error: 'redos' }
+  try {
+    return { ok: true, regex: new RegExp(pattern, 'i') }
+  } catch {
+    return { ok: false, error: 'invalid' }
+  }
 }
 
 export const textFilterFn: FilterFn<LogEntry> = (row, columnId, filterValue: TextFilterValue) => {
