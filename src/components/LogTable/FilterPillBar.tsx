@@ -34,6 +34,12 @@ function pillLabel(colId: string, filterType: string | undefined, filterValue: u
     return `${colId}: ${fromStr} – ${toStr}`
   }
   if (filterType === 'facet') {
+    // A facet column switched to text-search mode stores a TextFilterValue instead
+    if (filterValue && 'operator' in (filterValue as object)) {
+      const fv = filterValue as TextFilterValue
+      const op = OP_LABELS[fv.operator] ?? fv.operator
+      return `${colId} ${fv.negate ? 'NOT ' : ''}${op} "${fv.value}"`
+    }
     const fv = filterValue as FacetFilterValue
     const qualifier = fv.mode === 'exclude' ? 'NOT IN' : 'IN'
     const valLabels = fv.values.map((v) => (v === '' ? '(unset)' : v))

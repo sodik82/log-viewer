@@ -60,6 +60,20 @@ export const facetFilterFn: FilterFn<LogEntry> = (row, columnId, filterValue: Fa
 }
 facetFilterFn.autoRemove = (val: FacetFilterValue) => !val?.values?.length
 
+// Handles facet columns that have been switched to text-search mode.
+// Duck-types the filter value: if it has `operator` it's a TextFilterValue, otherwise FacetFilterValue.
+export const smartFilterFn: FilterFn<LogEntry> = (row, columnId, filterValue) => {
+  if (!filterValue) return true
+  if ('operator' in (filterValue as object))
+    return textFilterFn(row, columnId, filterValue as TextFilterValue)
+  return facetFilterFn(row, columnId, filterValue as FacetFilterValue)
+}
+smartFilterFn.autoRemove = (val) => {
+  if (!val) return true
+  if ('operator' in (val as object)) return textFilterFn.autoRemove!(val as TextFilterValue)
+  return facetFilterFn.autoRemove!(val as FacetFilterValue)
+}
+
 export const PRESET_OFFSETS: Record<DateRangePreset, number> = {
   last15m: 15 * 60 * 1000,
   last1h: 60 * 60 * 1000,
