@@ -70,3 +70,42 @@
   border-color: #dc2626;
   color: #dc2626;
 }
+
+.file-list__add-zone {
+  flex-grow: 1;
+  min-width: 120px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 6px;
+  border: 2px dashed transparent;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.file-list__add-zone--active {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.file-list__add-btn {
+  background: none;
+  border: 1px dashed #94a3b8;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.82rem;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.file-list__add-btn:hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+.file-list__drop-hint {
+  font-size: 0.82rem;
+  color: #3b82f6;
+}
