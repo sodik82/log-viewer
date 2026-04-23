@@ -119,6 +119,85 @@ describe('CsvLogLoader — Kibana format (escaped dot header, human-readable tim
   })
 })
 
+const KIBANA_EXPORT_HEADER = '"@timestamp","_source"'
+
+const KIBANA_EXPORT_ROW_ERROR =
+  '"Apr 14, 2026 @ 11:11:05.315",' +
+  '"{""@timestamp"":""Apr 14, 2026 @ 11:11:05.315"",""level"":""ERROR"",' +
+  '""message"":""Connection refused"",""service"":""auth-service"",' +
+  '""kubernetes.pod_name"":""app-pod-abc"",""kubernetes.namespace_name"":""production""}"'
+
+const KIBANA_EXPORT_ROW_INFO =
+  '"Apr 14, 2026 @ 11:11:06.000",' +
+  '"{""@timestamp"":""Apr 14, 2026 @ 11:11:06.000"",""level"":""INFO"",' +
+  '""message"":""Request handled"",""service"":""auth-service"",' +
+  '""kubernetes.pod_name"":""app-pod-abc"",""kubernetes.namespace_name"":""production""}"'
+
+const KIBANA_EXPORT_CSV = [
+  KIBANA_EXPORT_HEADER,
+  KIBANA_EXPORT_ROW_ERROR,
+  KIBANA_EXPORT_ROW_INFO,
+].join('\n')
+
+describe('CsvLogLoader — Kibana export (CSV with embedded JSON in _source)', () => {
+  const result = loader.parse(KIBANA_EXPORT_CSV, 'kibana-export.csv')
+
+  it('parses two entries', () => {
+    expect(result.entries).toHaveLength(2)
+  })
+
+  it('detects @timestamp as timestamp field', () => {
+    expect(result.timestampField).toBe('@timestamp')
+  })
+
+  it('parses timestamp from inner JSON as Date', () => {
+    const e = result.entries[0]
+    expect(e._timestamp).toBeInstanceOf(Date)
+    expect((e._timestamp as Date).toISOString()).toBe('2026-04-14T11:11:05.315Z')
+  })
+
+  it('promotes inner JSON fields to top level', () => {
+    const e = result.entries[0]
+    expect(e.level).toBe('ERROR')
+    expect(e.message).toBe('Connection refused')
+    expect(e.service).toBe('auth-service')
+    expect(e['kubernetes.pod_name']).toBe('app-pod-abc')
+    expect(e['kubernetes.namespace_name']).toBe('production')
+  })
+
+  it('drops the _source wrapper key', () => {
+    expect(result.entries[0]).not.toHaveProperty('_source')
+  })
+
+  it('parses second entry correctly', () => {
+    const e = result.entries[1]
+    expect(e.level).toBe('INFO')
+    expect(e.message).toBe('Request handled')
+    expect((e._timestamp as Date).toISOString()).toBe('2026-04-14T11:11:06.000Z')
+  })
+})
+
+describe('CsvLogLoader — JSON field edge cases', () => {
+  it('preserves string starting with { that is not valid JSON', () => {
+    const csv = 'timestamp,payload\n2026-04-14T11:11:05.000Z,{not valid json'
+    const result = loader.parse(csv, 'test.csv')
+    expect(result.entries[0].payload).toBe('{not valid json')
+  })
+
+  it('preserves JSON array value without expansion', () => {
+    const csv = 'timestamp,payload\n2026-04-14T11:11:05.000Z,"[1,2,3]"'
+    const result = loader.parse(csv, 'test.csv')
+    expect(result.entries[0].payload).toBe('[1,2,3]')
+  })
+
+  it('flattens nested objects inside JSON value to dot-notation', () => {
+    const csv = 'timestamp,meta\n2026-04-14T11:11:05.000Z,"{""context"":{""user"":""alice""}}"'
+    const result = loader.parse(csv, 'test.csv')
+    expect(result.entries[0]['context.user']).toBe('alice')
+    expect(result.entries[0]).not.toHaveProperty('meta')
+  })
+})
+
 describe('CsvLogLoader — security', () => {
   it('ignores __proto__ pollution attempt via header', () => {
     const csv = '__proto__.polluted,level\ntrue,ERROR'

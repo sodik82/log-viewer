@@ -21,7 +21,7 @@ export class CsvLogLoader implements ILogLoader {
         if (val === '') continue
         this.setNested(entry, key, val)
       }
-      return entry
+      return this.expandJsonFields(entry)
     })
 
     if (rawObjects.length === 0) return { entries: [], timestampField: null }
@@ -36,6 +36,38 @@ export class CsvLogLoader implements ILogLoader {
     }))
 
     return { entries, timestampField: tsField }
+  }
+
+  private expandJsonFields(obj: Record<string, unknown>): Record<string, unknown> {
+    const result: Record<string, unknown> = {}
+    for (const [key, val] of Object.entries(obj)) {
+      if (typeof val === 'string' && val.startsWith('{')) {
+        try {
+          const parsed = JSON.parse(val)
+          if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            Object.assign(result, this.flattenJson(parsed as Record<string, unknown>))
+            continue
+          }
+        } catch {
+          // not valid JSON — keep original value
+        }
+      }
+      result[key] = val
+    }
+    return result
+  }
+
+  private flattenJson(obj: Record<string, unknown>, prefix = ''): Record<string, unknown> {
+    const result: Record<string, unknown> = {}
+    for (const [key, val] of Object.entries(obj)) {
+      const fullKey = prefix ? `${prefix}.${key}` : key
+      if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
+        Object.assign(result, this.flattenJson(val as Record<string, unknown>, fullKey))
+      } else {
+        result[fullKey] = val
+      }
+    }
+    return result
   }
 
   private setNested(obj: Record<string, unknown>, key: string, value: string): void {
