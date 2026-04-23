@@ -30,8 +30,8 @@ export function App() {
         <h1 className="app__title">Log Viewer</h1>
       </header>
       <main className="app__main">
-        <DropZone onFiles={addFiles} />
-        <FileList files={files} onRemove={removeFile} onClear={clearAll} />
+        {files.length === 0 && <DropZone onFiles={addFiles} />}
+        <FileList files={files} onRemove={removeFile} onClear={clearAll} onAdd={addFiles} />
         {hasEntries && hasTimestamps && (
           <TimeHistogram
             entries={allEntries}
