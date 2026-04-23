@@ -1,7 +1,7 @@
 import { Fragment, useRef } from 'react'
 import { flexRender, type Column, type Table } from '@tanstack/react-table'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import type { LogEntry } from '../../types/log'
+import type { LogEntry, ColumnMeta } from '../../types/log'
 import { TextFilter } from './filters/TextFilter'
 import { DateRangeFilter } from './filters/DateRangeFilter'
 import { FacetFilter } from './filters/FacetFilter'
@@ -12,7 +12,7 @@ const ROW_HEIGHT_ESTIMATE = 29
 
 interface Props {
   table: Table<LogEntry>
-  columnIds: string[]
+  columns: ColumnMeta[]
   hasNoTimestamp: boolean
 }
 
@@ -32,7 +32,8 @@ function renderFilter(column: Column<LogEntry, unknown>) {
   return <TextFilter column={column} />
 }
 
-export function LogTable({ table, columnIds, hasNoTimestamp }: Props) {
+export function LogTable({ table, columns, hasNoTimestamp }: Props) {
+  const columnIds = columns.map((c) => c.id)
   const scrollRef = useRef<HTMLDivElement>(null)
   const headers = table.getHeaderGroups()[0].headers
   const rows = table.getRowModel().rows
@@ -65,19 +66,11 @@ export function LogTable({ table, columnIds, hasNoTimestamp }: Props) {
       )}
       <FilterPillBar table={table} />
       <div className="log-table__scroll" ref={scrollRef}>
-        <table className="log-table">
+        <table className="log-table" style={{ width: table.getTotalSize() }}>
           <thead>
             <tr>
               {headers.map((header) => (
-                <th
-                  key={header.id}
-                  className="log-table__th"
-                  style={
-                    header.column.columnDef.size
-                      ? { width: header.column.columnDef.size }
-                      : undefined
-                  }
-                >
+                <th key={header.id} className="log-table__th" style={{ width: header.getSize() }}>
                   {flexRender(header.column.columnDef.header, header.getContext())}
                 </th>
               ))}

@@ -3,7 +3,7 @@ import type { LoadedFile, LogEntry } from '../types/log'
 import { deriveColumns } from '../utils/columnDeriver'
 
 export function useLogTable(files: LoadedFile[]) {
-  const columnIds = useMemo(() => deriveColumns(files), [files])
+  const columns = useMemo(() => deriveColumns(files), [files])
   const allEntries = useMemo(() => files.flatMap((f) => f.entries), [files])
 
   const sorted = useMemo(() => {
@@ -19,7 +19,7 @@ export function useLogTable(files: LoadedFile[]) {
 
   const hasNoTimestamp = files.length > 0 && allEntries.every((e) => e._timestamp === null)
 
-  return { sorted, columnIds, hasNoTimestamp, allEntries }
+  return { sorted, columns, hasNoTimestamp, allEntries }
 }
 
 function compareBySource(a: LogEntry, b: LogEntry): number {

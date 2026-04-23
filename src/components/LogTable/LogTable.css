@@ -25,7 +25,7 @@
 
 .log-table {
   border-collapse: collapse;
-  width: max-content;
+  table-layout: fixed;
   min-width: 100%;
   font-size: 0.82rem;
   font-family: 'Menlo', 'Consolas', 'Monaco', monospace;

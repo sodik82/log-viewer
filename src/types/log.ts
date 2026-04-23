@@ -17,6 +17,11 @@ export interface LoadedFile {
   error: string | null
 }
 
+export interface ColumnMeta {
+  id: string
+  width: number
+}
+
 export interface ILogLoader {
   readonly name: string
   readonly extensions: string[]
