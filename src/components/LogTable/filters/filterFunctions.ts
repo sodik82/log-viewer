@@ -87,11 +87,11 @@ facetFilterFn.autoRemove = (val: FacetFilterValue) => !val?.values?.length
 
 // Handles facet columns that have been switched to text-search mode.
 // Duck-types the filter value: if it has `operator` it's a TextFilterValue, otherwise FacetFilterValue.
-export const smartFilterFn: FilterFn<LogEntry> = (row, columnId, filterValue) => {
+export const smartFilterFn: FilterFn<LogEntry> = (row, columnId, filterValue, addMeta) => {
   if (!filterValue) return true
   if ('operator' in (filterValue as object))
-    return textFilterFn(row, columnId, filterValue as TextFilterValue)
-  return facetFilterFn(row, columnId, filterValue as FacetFilterValue)
+    return textFilterFn(row, columnId, filterValue as TextFilterValue, addMeta)
+  return facetFilterFn(row, columnId, filterValue as FacetFilterValue, addMeta)
 }
 smartFilterFn.autoRemove = (val) => {
   if (!val) return true
