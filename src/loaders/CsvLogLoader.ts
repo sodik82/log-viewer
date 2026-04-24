@@ -4,7 +4,10 @@ import { detectTimestampField, parseTimestampValue } from '../utils/timestampDet
 
 export class CsvLogLoader implements ILogLoader {
   readonly name = 'CSV'
-  readonly extensions = ['.csv']
+
+  isSupported(ext: string, _contentHint: string): boolean {
+    return ext === '.csv'
+  }
 
   parse(content: string, fileName: string): ParseResult {
     const { data, errors } = Papa.parse<Record<string, string>>(content, {

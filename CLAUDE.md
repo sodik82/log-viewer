@@ -22,7 +22,7 @@ CI runs `lint` and `build` on every push; `deploy` auto-publishes to GitHub Page
 ### Data Flow
 
 1. User drops/selects files → `DropZone` → `useLoadedFiles` hook reads them as text
-2. Each file is dispatched to the appropriate loader (`JsonLogLoader` or `CsvLogLoader`) based on extension
+2. Each file is dispatched to the appropriate loader (`JsonLogLoader`, `CsvLogLoader`, or `FreeTextLogLoader`) based on extension (`.json`/`.ndjson` → JSON, `.csv` → CSV, `.log` → freetext)
 3. Loader parses entries and calls `timestampDetector` to identify the timestamp field (ISO 8601 and Kibana human-readable format; priority names: `timestamp`, `time`, `@timestamp`, `ts`, `date`, `datetime`, `created_at`, `updated_at`; requires ≥80% hit rate across first 20 entries)
 4. Entries are enriched with internal fields: `_timestamp` (Date), `_sourceFile`, `_rawIndex`
 5. `useLogTable` derives columns, sorts all entries from all files chronologically, and applies case-insensitive AND filters
@@ -37,11 +37,13 @@ CI runs `lint` and `build` on every push; `deploy` auto-publishes to GitHub Page
 | `src/hooks/useLogTable.ts` | Memoized column derivation, sort, filter |
 | `src/loaders/JsonLogLoader.ts` | Parses JSON arrays and NDJSON; flattens nested objects to dot-notation; runs timestamp detection |
 | `src/loaders/CsvLogLoader.ts` | Parses CSV with headers; dot-notation headers create nested objects; `\.` escapes a literal dot |
+| `src/loaders/FreeTextLogLoader.ts` | Parses Java/Logback plain-text `.log` files; handles multiline entries (stack traces, toString dumps) |
 | `src/utils/timestampDetector.ts` | Heuristic for identifying the timestamp field; supports ISO 8601 and Kibana format (`Mar 27, 2026 @ 12:32:30.038`) |
 | `src/utils/columnDeriver.ts` | Scans all entries; emits column list with priority ordering |
 | `src/types/log.ts` | Core interfaces: `LogEntry`, `ParseResult`, `LoadedFile`, `ILogLoader` |
 | `src/loaders/__tests__/JsonLogLoader.test.ts` | Unit tests for JSON/NDJSON loader |
 | `src/loaders/__tests__/CsvLogLoader.test.ts` | Unit tests for CSV loader |
+| `src/loaders/__tests__/FreeTextLogLoader.test.ts` | Unit tests for Java freetext loader |
 | `src/utils/__tests__/timestampDetector.test.ts` | Unit tests for timestamp field detection |
 
 ### Conventions
@@ -91,3 +93,7 @@ React re-renders immediately without painting. The guard (`prevCommitted !== ext
 ### Memory
 
 Update CLAUDE.md whenever significant architecture change is done or new npm scripts are added
+
+## Testing
+
+Always anonymize data/samples provided in prompt when preparing test data for tests.

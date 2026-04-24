@@ -24,6 +24,6 @@ export interface ColumnMeta {
 
 export interface ILogLoader {
   readonly name: string
-  readonly extensions: string[]
+  isSupported(extension: string, contentHint: string): boolean
   parse(content: string, fileName: string): ParseResult
 }

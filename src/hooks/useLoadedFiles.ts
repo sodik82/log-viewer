@@ -49,7 +49,7 @@ export function useLoadedFiles() {
           }
         }
 
-        const loader = getLoaderForFile(file.name)
+        const loader = getLoaderForFile(file.name, content)
         try {
           const { entries, timestampField } = loader.parse(content, file.name)
           return {
