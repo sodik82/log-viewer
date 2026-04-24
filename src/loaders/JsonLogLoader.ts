@@ -3,7 +3,15 @@ import { detectTimestampField, parseTimestampValue } from '../utils/timestampDet
 
 export class JsonLogLoader implements ILogLoader {
   readonly name = 'JSON / NDJSON'
-  readonly extensions = ['.json', '.ndjson', '.log']
+
+  isSupported(ext: string, contentHint: string): boolean {
+    if (ext === '.json' || ext === '.ndjson') return true
+    if (ext === '.log') {
+      const first = contentHint.trimStart()[0]
+      return first === '[' || first === '{'
+    }
+    return false
+  }
 
   parse(content: string, fileName: string): ParseResult {
     const trimmed = content.trim()
