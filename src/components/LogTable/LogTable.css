@@ -632,6 +632,14 @@
   font-family: inherit;
 }
 
+.log-table__td mark,
+.log-table__detail-val mark {
+  background: #fef08a;
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
 .filter-pill-bar__clear-all:hover {
   color: #ef4444;
 }
