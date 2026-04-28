@@ -30,8 +30,15 @@ export function CellFilterPopup({ value, column, filterType, children, variant }
         setOpen(false)
       }
     }
+    function onScroll() {
+      setOpen(false)
+    }
     document.addEventListener('mousedown', onMouseDown)
-    return () => document.removeEventListener('mousedown', onMouseDown)
+    window.addEventListener('scroll', onScroll, { capture: true })
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown)
+      window.removeEventListener('scroll', onScroll, { capture: true })
+    }
   }, [open])
 
   function handleTrigger() {
@@ -51,33 +58,40 @@ export function CellFilterPopup({ value, column, filterType, children, variant }
     setOpen(false)
   }
 
+  const trigger = (
+    <button
+      ref={triggerRef}
+      type="button"
+      className={`log-table__cell-filter-trigger${open ? ' log-table__cell-filter-trigger--active' : ''}`}
+      onClick={handleTrigger}
+      aria-label="Filter by this value"
+      aria-expanded={open}
+    >
+      ⊕
+    </button>
+  )
+
+  const popup = open && (
+    <div
+      ref={popupRef}
+      className="log-table__cell-filter-popup"
+      style={{ position: 'fixed', top: pos.top, left: pos.left, zIndex: 200 }}
+    >
+      <button type="button" onClick={() => handleFilter('in')}>
+        = Filter In
+      </button>
+      <button type="button" onClick={() => handleFilter('out')}>
+        ≠ Filter Out
+      </button>
+    </div>
+  )
+
   if (variant === 'inline') {
     return (
       <span className="log-table__cell-wrap log-table__cell-wrap--inline">
         {children}
-        <button
-          ref={triggerRef}
-          type="button"
-          className={`log-table__cell-filter-trigger${open ? ' log-table__cell-filter-trigger--active' : ''}`}
-          onClick={handleTrigger}
-          aria-label="Filter by this value"
-        >
-          ⊕
-        </button>
-        {open && (
-          <div
-            ref={popupRef}
-            className="log-table__cell-filter-popup"
-            style={{ position: 'fixed', top: pos.top, left: pos.left, zIndex: 200 }}
-          >
-            <button type="button" onClick={() => handleFilter('in')}>
-              = Filter In
-            </button>
-            <button type="button" onClick={() => handleFilter('out')}>
-              ≠ Filter Out
-            </button>
-          </div>
-        )}
+        {trigger}
+        {popup}
       </span>
     )
   }
@@ -85,29 +99,8 @@ export function CellFilterPopup({ value, column, filterType, children, variant }
   return (
     <div className="log-table__cell-wrap">
       <div className="log-table__cell-text">{children}</div>
-      <button
-        ref={triggerRef}
-        type="button"
-        className={`log-table__cell-filter-trigger${open ? ' log-table__cell-filter-trigger--active' : ''}`}
-        onClick={handleTrigger}
-        aria-label="Filter by this value"
-      >
-        ⊕
-      </button>
-      {open && (
-        <div
-          ref={popupRef}
-          className="log-table__cell-filter-popup"
-          style={{ position: 'fixed', top: pos.top, left: pos.left, zIndex: 200 }}
-        >
-          <button type="button" onClick={() => handleFilter('in')}>
-            = Filter In
-          </button>
-          <button type="button" onClick={() => handleFilter('out')}>
-            ≠ Filter Out
-          </button>
-        </div>
-      )}
+      {trigger}
+      {popup}
     </div>
   )
 }
