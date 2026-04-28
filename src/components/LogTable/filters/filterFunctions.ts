@@ -1,4 +1,4 @@
-import type { FilterFn } from '@tanstack/react-table'
+import type { Column, FilterFn } from '@tanstack/react-table'
 import type { LogEntry } from '../../../types/log'
 
 export type TextFilterValue = {
@@ -134,4 +134,24 @@ dateRangeFilterFn.autoRemove = (val: DateRangeFilterValue) => {
   if (!val) return true
   if (val.type === 'preset') return false
   return !val.from && !val.to
+}
+
+export function applyCellFilter(
+  column: Column<LogEntry>,
+  filterType: 'text' | 'facet',
+  strVal: string,
+  mode: 'in' | 'out'
+): void {
+  if (filterType === 'facet') {
+    const existing = column.getFilterValue() as FacetFilterValue | undefined
+    const targetMode = mode === 'in' ? 'include' : 'exclude'
+    if (existing && 'values' in existing && existing.mode === targetMode) {
+      const values = [...new Set([...existing.values, strVal])]
+      column.setFilterValue({ mode: targetMode, values })
+    } else {
+      column.setFilterValue({ mode: targetMode, values: [strVal] })
+    }
+  } else {
+    column.setFilterValue({ operator: 'equals', negate: mode === 'out', value: strVal })
+  }
 }

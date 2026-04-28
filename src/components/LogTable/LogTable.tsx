@@ -6,6 +6,7 @@ import { TextFilter } from './filters/TextFilter'
 import { DateRangeFilter } from './filters/DateRangeFilter'
 import { FacetFilter } from './filters/FacetFilter'
 import { FilterPillBar } from './FilterPillBar'
+import { CellFilterPopup } from './CellFilterPopup'
 import './LogTable.css'
 
 const ROW_HEIGHT_ESTIMATE = 29
@@ -98,11 +99,30 @@ export function LogTable({ table, columns, hasNoTimestamp }: Props) {
             return (
               <tbody key={row.id} data-index={virtualRow.index} ref={rowVirtualizer.measureElement}>
                 <tr className={`log-table__row${isAlt ? ' log-table__row--alt' : ''}`}>
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="log-table__td">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
+                  {row.getVisibleCells().map((cell) => {
+                    const filterType = cell.column.columnDef.meta?.filterType
+                    const colId = cell.column.id
+                    if (colId === '__expand' || filterType === 'dateRange') {
+                      return (
+                        <td key={cell.id} className="log-table__td">
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      )
+                    }
+                    const rawVal =
+                      colId === '_timestamp' ? row.original._timestamp : row.original[colId]
+                    return (
+                      <td key={cell.id} className="log-table__td">
+                        <CellFilterPopup
+                          value={rawVal}
+                          column={cell.column}
+                          filterType={filterType ?? 'text'}
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </CellFilterPopup>
+                      </td>
+                    )
+                  })}
                 </tr>
                 {row.getIsExpanded() && (
                   <tr className="log-table__detail-row">
@@ -111,11 +131,23 @@ export function LogTable({ table, columns, hasNoTimestamp }: Props) {
                         {columnIds.map((colId) => {
                           const raw =
                             colId === '_timestamp' ? row.original._timestamp : row.original[colId]
+                          const col = table.getColumn(colId)
+                          const filterType = col?.columnDef.meta?.filterType
+                          const keyLabel = colId === '_timestamp' ? 'timestamp' : colId
                           return (
                             <Fragment key={colId}>
-                              <span className="log-table__detail-key">
-                                {colId === '_timestamp' ? 'timestamp' : colId}
-                              </span>
+                              {col && filterType !== 'dateRange' ? (
+                                <CellFilterPopup
+                                  value={raw}
+                                  column={col}
+                                  filterType={filterType ?? 'text'}
+                                  variant="inline"
+                                >
+                                  <span className="log-table__detail-key">{keyLabel}</span>
+                                </CellFilterPopup>
+                              ) : (
+                                <span className="log-table__detail-key">{keyLabel}</span>
+                              )}
                               <pre className="log-table__detail-val">
                                 {renderExpandedValue(colId, raw)}
                               </pre>
