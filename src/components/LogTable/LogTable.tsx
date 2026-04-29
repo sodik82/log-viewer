@@ -7,6 +7,8 @@ import { DateRangeFilter } from './filters/DateRangeFilter'
 import { FacetFilter } from './filters/FacetFilter'
 import { FilterPillBar } from './FilterPillBar'
 import { CellFilterPopup } from './CellFilterPopup'
+import { highlightText } from '../../utils/highlightText'
+import type { TextFilterValue } from './filters/filterFunctions'
 import './LogTable.css'
 
 const ROW_HEIGHT_ESTIMATE = 29
@@ -149,7 +151,13 @@ export function LogTable({ table, columns, hasNoTimestamp }: Props) {
                                 <span className="log-table__detail-key">{keyLabel}</span>
                               )}
                               <pre className="log-table__detail-val">
-                                {renderExpandedValue(colId, raw)}
+                                {(() => {
+                                  const text = renderExpandedValue(colId, raw)
+                                  const fv = col?.getFilterValue()
+                                  return typeof fv === 'object' && fv !== null && 'operator' in fv
+                                    ? highlightText(text, fv as TextFilterValue)
+                                    : text
+                                })()}
                               </pre>
                             </Fragment>
                           )

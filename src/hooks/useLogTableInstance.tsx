@@ -14,7 +14,9 @@ import {
   textFilterFn,
   smartFilterFn,
   dateRangeFilterFn,
+  type TextFilterValue,
 } from '../components/LogTable/filters/filterFunctions'
+import { highlightText } from '../utils/highlightText'
 
 const FACET_THRESHOLD = 20
 
@@ -82,10 +84,14 @@ export function useLogTableInstance(
               ? ('facet' as const)
               : ('text' as const),
       },
-      cell: ({ row }) => {
+      cell: ({ row, column }) => {
         const raw = colId === '_timestamp' ? row.original._timestamp : row.original[colId]
         if (cellRenderers?.[colId]) return cellRenderers[colId](raw)
-        return renderCellValue(colId, raw)
+        const text = renderCellValue(colId, raw)
+        const fv = column.getFilterValue()
+        return typeof fv === 'object' && fv !== null && 'operator' in fv
+          ? highlightText(text, fv as TextFilterValue)
+          : text
       },
     }))
 
