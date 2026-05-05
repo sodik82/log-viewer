@@ -44,6 +44,7 @@ export function TextFilter({ column }: Props) {
     setPrevCommitted(currentCommitted)
     if (!currentCommitted) {
       setLocalInputValue('')
+      setLocalNegate(false)
       setInvalidRegex(false)
       setReDoSWarning(false)
     }

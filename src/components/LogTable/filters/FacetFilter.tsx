@@ -74,6 +74,7 @@ export function FacetFilter({ column }: Props) {
     setPrevFilterExists(!!filterValue)
     if (!filterValue) {
       setLocalTextValue('')
+      setLocalNegate(false)
       setInvalidRegex(false)
       setReDoSWarning(false)
     }
