@@ -28,10 +28,15 @@ function valueLength(val: unknown): number {
 export function deriveColumns(files: LoadedFile[]): ColumnMeta[] {
   const maxLen = new Map<string, number>()
 
+  const skipKeys = new Set(SKIP_KEYS)
+  for (const file of files) {
+    if (file.timestampField) skipKeys.add(file.timestampField)
+  }
+
   for (const file of files) {
     for (const entry of file.entries) {
       for (const [key, val] of Object.entries(entry)) {
-        if (SKIP_KEYS.has(key)) continue
+        if (skipKeys.has(key)) continue
         const len = valueLength(val)
         const prev = maxLen.get(key) ?? 0
         if (len > prev) maxLen.set(key, len)
