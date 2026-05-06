@@ -55,22 +55,15 @@ export function useLogTableInstance(data: LogEntry[], columns: ColumnConfig[]): 
     })
   }, [data, columns])
 
-  const isMerged = useMemo(
-    () => new Set(columns.filter((c) => c.sourceColumns.length > 1).map((c) => c.id)),
-    [columns]
-  )
-
   const facetColumns = useMemo(() => {
     const facets = new Set<string>()
     for (const col of columns) {
       if (col.id === '_timestamp') continue
-      if (isMerged.has(col.id)) continue
-      const src = col.sourceColumns[0]
-      const distinct = new Set(transformedData.map((e) => String(e[src] ?? '')))
+      const distinct = new Set(transformedData.map((e) => String(e[col.id] ?? '')))
       if (distinct.size > 0 && distinct.size <= FACET_THRESHOLD) facets.add(col.id)
     }
     return facets
-  }, [columns, transformedData, isMerged])
+  }, [columns, transformedData])
 
   const tanstackColumns = useMemo<ColumnDef<LogEntry>[]>(() => {
     const expandCol: ColumnDef<LogEntry> = {
@@ -100,14 +93,14 @@ export function useLogTableInstance(data: LogEntry[], columns: ColumnConfig[]): 
       filterFn:
         col.id === '_timestamp'
           ? dateRangeFilterFn
-          : !isMerged.has(col.id) && facetColumns.has(col.id)
+          : facetColumns.has(col.id)
             ? smartFilterFn
             : textFilterFn,
       meta: {
         filterType:
           col.id === '_timestamp'
             ? ('dateRange' as const)
-            : !isMerged.has(col.id) && facetColumns.has(col.id)
+            : facetColumns.has(col.id)
               ? ('facet' as const)
               : ('text' as const),
       },
@@ -122,7 +115,7 @@ export function useLogTableInstance(data: LogEntry[], columns: ColumnConfig[]): 
     }))
 
     return [expandCol, ...dataCols]
-  }, [columns, facetColumns, isMerged])
+  }, [columns, facetColumns])
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
