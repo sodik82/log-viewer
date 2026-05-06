@@ -10,7 +10,9 @@
   top: 0;
   right: 0;
   bottom: 0;
-  width: 260px;
+  width: max-content;
+  min-width: 220px;
+  max-width: min(520px, 85vw);
   background: #fff;
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
   z-index: 301;
@@ -59,7 +61,6 @@
   align-items: center;
   gap: 8px;
   padding: 5px 16px;
-  cursor: grab;
   user-select: none;
 }
 
@@ -92,9 +93,6 @@
   font-size: 0.82rem;
   font-family: 'Menlo', 'Consolas', 'Monaco', monospace;
   color: #374151;
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 

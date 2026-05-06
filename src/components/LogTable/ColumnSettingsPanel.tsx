@@ -74,10 +74,6 @@ export function ColumnSettingsPanel({ table, onClose }: Props) {
                 ]
                   .filter(Boolean)
                   .join(' ')}
-                draggable
-                onDragStart={() => {
-                  dragItemRef.current = col.id
-                }}
                 onDragOver={(e) => {
                   e.preventDefault()
                   setDragOverId(col.id)
@@ -90,7 +86,15 @@ export function ColumnSettingsPanel({ table, onClose }: Props) {
                   dragItemRef.current = null
                 }}
               >
-                <span className="col-settings__handle">⠿</span>
+                <span
+                  className="col-settings__handle"
+                  draggable
+                  onDragStart={() => {
+                    dragItemRef.current = col.id
+                  }}
+                >
+                  ⠿
+                </span>
                 <input
                   type="checkbox"
                   checked={isVisible}
