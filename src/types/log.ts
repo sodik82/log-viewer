@@ -22,6 +22,14 @@ export interface ColumnMeta {
   width: number
 }
 
+export interface ColumnConfig {
+  id: string
+  displayName: string
+  visible: boolean
+  sourceColumns: string[]
+  width: number
+}
+
 export interface ILogLoader {
   readonly name: string
   isSupported(extension: string, contentHint: string): boolean

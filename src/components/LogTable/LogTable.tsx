@@ -1,7 +1,7 @@
-import { Fragment, useRef, useState } from 'react'
+import { Fragment, useMemo, useRef, useState } from 'react'
 import { flexRender, type Column, type Table } from '@tanstack/react-table'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import type { LogEntry } from '../../types/log'
+import type { LogEntry, ColumnConfig } from '../../types/log'
 import { TextFilter } from './filters/TextFilter'
 import { DateRangeFilter } from './filters/DateRangeFilter'
 import { FacetFilter } from './filters/FacetFilter'
@@ -9,7 +9,6 @@ import { FilterPillBar } from './FilterPillBar'
 import { CellFilterPopup } from './CellFilterPopup'
 import { ColumnSettingsPanel } from './ColumnSettingsPanel'
 import { highlightText } from '../../utils/highlightText'
-import { reorderColumns } from '../../utils/reorderColumns'
 import { useColumnDrag } from '../../hooks/useColumnDrag'
 import type { TextFilterValue } from './filters/filterFunctions'
 import './LogTable.css'
@@ -19,10 +18,15 @@ const ROW_HEIGHT_ESTIMATE = 29
 interface Props {
   table: Table<LogEntry>
   hasNoTimestamp: boolean
+  config: ColumnConfig[]
+  onReorder: (src: string, dst: string) => void
+  onSetVisible: (ids: string[], visible: boolean) => void
+  onMerge: (ids: string[]) => void
+  onUnmerge: (ids: string[]) => void
 }
 
-function renderExpandedValue(colId: string, value: unknown): string {
-  if (colId === '_timestamp') {
+function renderExpandedValue(col: ColumnConfig, value: unknown): string {
+  if (col.id === '_timestamp') {
     return value instanceof Date ? value.toISOString() : ''
   }
   if (value === null || value === undefined) return ''
@@ -37,21 +41,37 @@ function renderFilter(column: Column<LogEntry, unknown>) {
   return <TextFilter column={column} />
 }
 
-export function LogTable({ table, hasNoTimestamp }: Props) {
-  const columnIds = table
-    .getAllLeafColumns()
-    .filter((c) => c.id !== '__expand')
-    .map((c) => c.id)
+export function LogTable({
+  table,
+  hasNoTimestamp,
+  config,
+  onReorder,
+  onSetVisible,
+  onMerge,
+  onUnmerge,
+}: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+
+  // Visible columns in order (mirrors what TanStack received)
+  const visibleCols = useMemo(() => config.filter((c) => c.visible), [config])
+  const colById = useMemo(() => new Map(config.map((c) => [c.id, c])), [config])
+
+  // row.original is pre-transformed data (merged column values already coalesced into entry[col.id])
+  function getRowValue(col: ColumnConfig, entry: LogEntry): unknown {
+    if (col.id === '_timestamp') return entry._timestamp
+    return entry[col.id]
+  }
+
   const {
     dragOverId: dragOverColId,
     dragHandleProps,
     dropTargetProps,
   } = useColumnDrag((src, dst) => {
     if (dst === '__expand') return
-    table.setColumnOrder(reorderColumns(table.getState().columnOrder, src, dst))
+    onReorder(src, dst)
   })
-  const [settingsOpen, setSettingsOpen] = useState(false)
+
   const headers = table.getHeaderGroups()[0].headers
   const rows = table.getRowModel().rows
   const filteredCount = table.getFilteredRowModel().rows.length
@@ -63,9 +83,6 @@ export function LogTable({ table, hasNoTimestamp }: Props) {
     getScrollElement: () => scrollRef.current,
     estimateSize: () => ROW_HEIGHT_ESTIMATE,
     overscan: 10,
-    // Each virtual item is a <tbody> wrapping the data row + optional detail row.
-    // measureElement tracks the actual combined height so expanded rows don't cause
-    // scroll-position jumps.
     measureElement: (el) => el.getBoundingClientRect().height,
   })
 
@@ -91,7 +108,16 @@ export function LogTable({ table, hasNoTimestamp }: Props) {
           Columns
         </button>
       </div>
-      {settingsOpen && <ColumnSettingsPanel table={table} onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && (
+        <ColumnSettingsPanel
+          config={config}
+          onClose={() => setSettingsOpen(false)}
+          onReorder={onReorder}
+          onSetVisible={onSetVisible}
+          onMerge={onMerge}
+          onUnmerge={onUnmerge}
+        />
+      )}
       <div className="log-table__scroll" ref={scrollRef}>
         <table className="log-table" style={{ width: table.getTotalSize() }}>
           <thead>
@@ -137,8 +163,6 @@ export function LogTable({ table, hasNoTimestamp }: Props) {
           )}
           {virtualItems.map((virtualRow) => {
             const row = rows[virtualRow.index]
-            // Alternating row shade is driven by index since CSS nth-child counts
-            // within each <tbody> and would always see a single child.
             const isAlt = virtualRow.index % 2 !== 0
             return (
               <tbody key={row.id} data-index={virtualRow.index} ref={rowVirtualizer.measureElement}>
@@ -153,8 +177,8 @@ export function LogTable({ table, hasNoTimestamp }: Props) {
                         </td>
                       )
                     }
-                    const rawVal =
-                      colId === '_timestamp' ? row.original._timestamp : row.original[colId]
+                    const col = colById.get(colId)
+                    const rawVal = col ? getRowValue(col, row.original) : undefined
                     return (
                       <td key={cell.id} className="log-table__td">
                         <CellFilterPopup
@@ -172,30 +196,28 @@ export function LogTable({ table, hasNoTimestamp }: Props) {
                   <tr className="log-table__detail-row">
                     <td colSpan={headers.length} className="log-table__detail-cell">
                       <div className="log-table__detail-panel">
-                        {columnIds.map((colId) => {
-                          const raw =
-                            colId === '_timestamp' ? row.original._timestamp : row.original[colId]
-                          const col = table.getColumn(colId)
-                          const filterType = col?.columnDef.meta?.filterType
-                          const keyLabel = colId === '_timestamp' ? 'timestamp' : colId
+                        {visibleCols.map((col) => {
+                          const raw = getRowValue(col, row.original)
+                          const tanCol = table.getColumn(col.id)
+                          const filterType = tanCol?.columnDef.meta?.filterType
                           return (
-                            <Fragment key={colId}>
-                              {col && filterType !== 'dateRange' ? (
+                            <Fragment key={col.id}>
+                              {tanCol && filterType !== 'dateRange' ? (
                                 <CellFilterPopup
                                   value={raw}
-                                  column={col}
+                                  column={tanCol}
                                   filterType={filterType ?? 'text'}
                                   variant="inline"
                                 >
-                                  <span className="log-table__detail-key">{keyLabel}</span>
+                                  <span className="log-table__detail-key">{col.displayName}</span>
                                 </CellFilterPopup>
                               ) : (
-                                <span className="log-table__detail-key">{keyLabel}</span>
+                                <span className="log-table__detail-key">{col.displayName}</span>
                               )}
                               <pre className="log-table__detail-val">
                                 {(() => {
-                                  const text = renderExpandedValue(colId, raw)
-                                  const fv = col?.getFilterValue()
+                                  const text = renderExpandedValue(col, raw)
+                                  const fv = tanCol?.getFilterValue()
                                   return typeof fv === 'object' && fv !== null && 'operator' in fv
                                     ? highlightText(text, fv as TextFilterValue)
                                     : text
