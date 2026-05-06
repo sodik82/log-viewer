@@ -1,12 +1,13 @@
-import { Fragment, useRef } from 'react'
+import { Fragment, useRef, useState } from 'react'
 import { flexRender, type Column, type Table } from '@tanstack/react-table'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import type { LogEntry, ColumnMeta } from '../../types/log'
+import type { LogEntry } from '../../types/log'
 import { TextFilter } from './filters/TextFilter'
 import { DateRangeFilter } from './filters/DateRangeFilter'
 import { FacetFilter } from './filters/FacetFilter'
 import { FilterPillBar } from './FilterPillBar'
 import { CellFilterPopup } from './CellFilterPopup'
+import { ColumnSettingsPanel } from './ColumnSettingsPanel'
 import { highlightText } from '../../utils/highlightText'
 import type { TextFilterValue } from './filters/filterFunctions'
 import './LogTable.css'
@@ -15,7 +16,6 @@ const ROW_HEIGHT_ESTIMATE = 29
 
 interface Props {
   table: Table<LogEntry>
-  columns: ColumnMeta[]
   hasNoTimestamp: boolean
 }
 
@@ -35,9 +35,15 @@ function renderFilter(column: Column<LogEntry, unknown>) {
   return <TextFilter column={column} />
 }
 
-export function LogTable({ table, columns, hasNoTimestamp }: Props) {
-  const columnIds = columns.map((c) => c.id)
+export function LogTable({ table, hasNoTimestamp }: Props) {
+  const columnIds = table
+    .getAllLeafColumns()
+    .filter((c) => c.id !== '__expand')
+    .map((c) => c.id)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const dragColRef = useRef<string | null>(null)
+  const [dragOverColId, setDragOverColId] = useState<string | null>(null)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const headers = table.getHeaderGroups()[0].headers
   const rows = table.getRowModel().rows
   const filteredCount = table.getFilteredRowModel().rows.length
@@ -68,12 +74,53 @@ export function LogTable({ table, columns, hasNoTimestamp }: Props) {
         <div className="log-table__notice">No timestamp field detected — showing file order.</div>
       )}
       <FilterPillBar table={table} />
+      <div className="log-table__toolbar">
+        <button
+          className="log-table__columns-btn"
+          type="button"
+          onClick={() => setSettingsOpen(true)}
+        >
+          Columns
+        </button>
+      </div>
+      {settingsOpen && <ColumnSettingsPanel table={table} onClose={() => setSettingsOpen(false)} />}
       <div className="log-table__scroll" ref={scrollRef}>
         <table className="log-table" style={{ width: table.getTotalSize() }}>
           <thead>
             <tr>
               {headers.map((header) => (
-                <th key={header.id} className="log-table__th" style={{ width: header.getSize() }}>
+                <th
+                  key={header.id}
+                  className={[
+                    'log-table__th',
+                    header.id !== '__expand' ? 'log-table__th--draggable' : '',
+                    dragOverColId === header.id ? 'log-table__th--drag-over' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  style={{ width: header.getSize() }}
+                  draggable={header.id !== '__expand'}
+                  onDragStart={() => {
+                    dragColRef.current = header.id
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    setDragOverColId(header.id)
+                  }}
+                  onDragLeave={() => setDragOverColId(null)}
+                  onDrop={() => {
+                    const src = dragColRef.current
+                    const dst = header.id
+                    if (!src || src === dst || dst === '__expand') return
+                    const order = table.getState().columnOrder
+                    const next = order.filter((id) => id !== src)
+                    const idx = next.indexOf(dst)
+                    next.splice(idx, 0, src)
+                    table.setColumnOrder(next)
+                    setDragOverColId(null)
+                    dragColRef.current = null
+                  }}
+                >
                   {flexRender(header.column.columnDef.header, header.getContext())}
                 </th>
               ))}
