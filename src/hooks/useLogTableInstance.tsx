@@ -35,6 +35,11 @@ function renderCellValue(colId: string, value: unknown): string {
 export function useLogTableInstance(
   data: LogEntry[],
   columnMetas: ColumnMeta[],
+  ordering?: { columnOrder: string[]; onColumnOrderChange: (order: string[]) => void },
+  visibility?: {
+    columnVisibility: Record<string, boolean>
+    onColumnVisibilityChange: (vis: Record<string, boolean>) => void
+  },
   cellRenderers?: Record<string, (value: unknown) => React.ReactNode>
 ): Table<LogEntry> {
   const facetColumns = useMemo(() => {
@@ -52,6 +57,7 @@ export function useLogTableInstance(
       id: '__expand',
       header: '',
       enableColumnFilter: false,
+      enableHiding: false,
       size: 28,
       cell: ({ row }) => (
         <button
@@ -107,6 +113,24 @@ export function useLogTableInstance(
     getExpandedRowModel: getExpandedRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
+    state: {
+      ...(ordering ? { columnOrder: ['__expand', ...ordering.columnOrder] } : {}),
+      ...(visibility ? { columnVisibility: visibility.columnVisibility } : {}),
+    },
+    ...(ordering && {
+      onColumnOrderChange: (updater) => {
+        const current: string[] = ['__expand', ...ordering.columnOrder]
+        const next = typeof updater === 'function' ? updater(current) : updater
+        ordering.onColumnOrderChange(next.filter((id) => id !== '__expand'))
+      },
+    }),
+    ...(visibility && {
+      onColumnVisibilityChange: (updater) => {
+        const current = visibility.columnVisibility
+        const next = typeof updater === 'function' ? updater(current) : updater
+        visibility.onColumnVisibilityChange(next)
+      },
+    }),
   })
 
   return table

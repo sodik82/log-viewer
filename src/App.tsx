@@ -6,13 +6,22 @@ import { TimeHistogram } from './components/TimeHistogram/TimeHistogram'
 import { useLoadedFiles } from './hooks/useLoadedFiles'
 import { useLogTable } from './hooks/useLogTable'
 import { useLogTableInstance } from './hooks/useLogTableInstance'
+import { useColumnOrder } from './hooks/useColumnOrder'
+import { useColumnVisibility } from './hooks/useColumnVisibility'
 import type { DateRangeFilterValue } from './components/LogTable/filters/filterFunctions'
 import './App.css'
 
 export function App() {
   const { files, addFiles, removeFile, clearAll } = useLoadedFiles()
   const { sorted, columns, hasNoTimestamp, allEntries } = useLogTable(files)
-  const table = useLogTableInstance(sorted, columns)
+  const { columnOrder, setColumnOrder } = useColumnOrder(columns)
+  const { columnVisibility, setColumnVisibility } = useColumnVisibility()
+  const table = useLogTableInstance(
+    sorted,
+    columns,
+    { columnOrder, onColumnOrderChange: setColumnOrder },
+    { columnVisibility, onColumnVisibilityChange: setColumnVisibility }
+  )
 
   const hasEntries = files.some((f) => f.entries.length > 0)
   const hasTimestamps = allEntries.some((e) => e._timestamp !== null)
@@ -40,7 +49,7 @@ export function App() {
           />
         )}
         {hasEntries ? (
-          <LogTable table={table} columns={columns} hasNoTimestamp={hasNoTimestamp} />
+          <LogTable table={table} hasNoTimestamp={hasNoTimestamp} />
         ) : files.length === 0 ? (
           <div className="app__empty">Load one or more log files to get started.</div>
         ) : null}

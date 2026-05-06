@@ -1,0 +1,126 @@
+.col-settings__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  z-index: 300;
+}
+
+.col-settings__panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: max-content;
+  min-width: 220px;
+  max-width: min(520px, 85vw);
+  background: #fff;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+  z-index: 301;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.col-settings__header {
+  padding: 14px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.col-settings__title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #1e293b;
+}
+
+.col-settings__close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+  font-size: 1.3rem;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.col-settings__close:hover {
+  color: #1e293b;
+}
+
+.col-settings__list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+
+.col-settings__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 16px;
+  user-select: none;
+}
+
+.col-settings__item:hover {
+  background: #f8fafc;
+}
+
+.col-settings__item--drag-over {
+  background: #eff6ff;
+  border-left: 2px solid #3b82f6;
+  padding-left: 14px;
+}
+
+.col-settings__item--hidden {
+  opacity: 0.55;
+}
+
+.col-settings__handle {
+  color: #94a3b8;
+  font-size: 1rem;
+  flex-shrink: 0;
+  cursor: grab;
+}
+
+.col-settings__item:active .col-settings__handle {
+  cursor: grabbing;
+}
+
+.col-settings__label {
+  font-size: 0.82rem;
+  font-family: 'Menlo', 'Consolas', 'Monaco', monospace;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.col-settings__footer {
+  padding: 10px 16px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.col-settings__footer button {
+  flex: 1;
+  padding: 5px;
+  font-size: 0.78rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: #f8fafc;
+  cursor: pointer;
+  color: #374151;
+}
+
+.col-settings__footer button:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.col-settings__footer button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
