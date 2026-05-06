@@ -9,6 +9,8 @@ import { FilterPillBar } from './FilterPillBar'
 import { CellFilterPopup } from './CellFilterPopup'
 import { ColumnSettingsPanel } from './ColumnSettingsPanel'
 import { highlightText } from '../../utils/highlightText'
+import { reorderColumns } from '../../utils/reorderColumns'
+import { useColumnDrag } from '../../hooks/useColumnDrag'
 import type { TextFilterValue } from './filters/filterFunctions'
 import './LogTable.css'
 
@@ -41,8 +43,14 @@ export function LogTable({ table, hasNoTimestamp }: Props) {
     .filter((c) => c.id !== '__expand')
     .map((c) => c.id)
   const scrollRef = useRef<HTMLDivElement>(null)
-  const dragColRef = useRef<string | null>(null)
-  const [dragOverColId, setDragOverColId] = useState<string | null>(null)
+  const {
+    dragOverId: dragOverColId,
+    dragHandleProps,
+    dropTargetProps,
+  } = useColumnDrag((src, dst) => {
+    if (dst === '__expand') return
+    table.setColumnOrder(reorderColumns(table.getState().columnOrder, src, dst))
+  })
   const [settingsOpen, setSettingsOpen] = useState(false)
   const headers = table.getHeaderGroups()[0].headers
   const rows = table.getRowModel().rows
@@ -91,6 +99,9 @@ export function LogTable({ table, hasNoTimestamp }: Props) {
               {headers.map((header) => (
                 <th
                   key={header.id}
+                  {...(header.id !== '__expand'
+                    ? { ...dragHandleProps(header.id), ...dropTargetProps(header.id) }
+                    : {})}
                   className={[
                     'log-table__th',
                     header.id !== '__expand' ? 'log-table__th--draggable' : '',
@@ -99,27 +110,11 @@ export function LogTable({ table, hasNoTimestamp }: Props) {
                     .filter(Boolean)
                     .join(' ')}
                   style={{ width: header.getSize() }}
-                  draggable={header.id !== '__expand'}
-                  onDragStart={() => {
-                    dragColRef.current = header.id
-                  }}
-                  onDragOver={(e) => {
-                    e.preventDefault()
-                    setDragOverColId(header.id)
-                  }}
-                  onDragLeave={() => setDragOverColId(null)}
-                  onDrop={() => {
-                    const src = dragColRef.current
-                    const dst = header.id
-                    if (!src || src === dst || dst === '__expand') return
-                    const order = table.getState().columnOrder
-                    const next = order.filter((id) => id !== src)
-                    const idx = next.indexOf(dst)
-                    next.splice(idx, 0, src)
-                    table.setColumnOrder(next)
-                    setDragOverColId(null)
-                    dragColRef.current = null
-                  }}
+                  title={
+                    typeof header.column.columnDef.header === 'string'
+                      ? header.column.columnDef.header
+                      : undefined
+                  }
                 >
                   {flexRender(header.column.columnDef.header, header.getContext())}
                 </th>

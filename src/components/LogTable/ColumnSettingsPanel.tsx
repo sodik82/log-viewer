@@ -1,6 +1,7 @@
-import { useRef, useState } from 'react'
 import { type Table } from '@tanstack/react-table'
 import type { LogEntry } from '../../types/log'
+import { useColumnDrag } from '../../hooks/useColumnDrag'
+import { reorderColumns } from '../../utils/reorderColumns'
 import './ColumnSettingsPanel.css'
 
 interface Props {
@@ -13,8 +14,9 @@ function colLabel(id: string) {
 }
 
 export function ColumnSettingsPanel({ table, onClose }: Props) {
-  const dragItemRef = useRef<string | null>(null)
-  const [dragOverId, setDragOverId] = useState<string | null>(null)
+  const { dragOverId, dragHandleProps, dropTargetProps } = useColumnDrag((src, dst) =>
+    table.setColumnOrder(reorderColumns(table.getState().columnOrder, src, dst))
+  )
 
   // All data columns in their current order (as stored in columnOrder state)
   const orderedColumns = table
@@ -30,18 +32,6 @@ export function ColumnSettingsPanel({ table, onClose }: Props) {
     .filter((c) => c.id !== '__expand' && !inOrder.has(c.id))
 
   const allColumns = [...orderedColumns, ...unorderedColumns]
-
-  function reorder(srcId: string, dstId: string) {
-    const order = table.getState().columnOrder
-    const next = [...order]
-    const from = next.indexOf(srcId)
-    const to = next.indexOf(dstId)
-    if (from === -1 || to === -1) return
-    next.splice(from, 1)
-    next.splice(to, 0, srcId)
-    table.setColumnOrder(next)
-  }
-
   const visibleCount = allColumns.filter((c) => c?.getIsVisible()).length
 
   return (
@@ -62,37 +52,20 @@ export function ColumnSettingsPanel({ table, onClose }: Props) {
         <div className="col-settings__list">
           {allColumns.map((col) => {
             if (!col) return null
-            const isDragOver = dragOverId === col.id
             const isVisible = col.getIsVisible()
             return (
               <div
                 key={col.id}
+                {...dropTargetProps(col.id)}
                 className={[
                   'col-settings__item',
-                  isDragOver ? 'col-settings__item--drag-over' : '',
+                  dragOverId === col.id ? 'col-settings__item--drag-over' : '',
                   !isVisible ? 'col-settings__item--hidden' : '',
                 ]
                   .filter(Boolean)
                   .join(' ')}
-                onDragOver={(e) => {
-                  e.preventDefault()
-                  setDragOverId(col.id)
-                }}
-                onDragLeave={() => setDragOverId(null)}
-                onDrop={() => {
-                  const src = dragItemRef.current
-                  if (src && src !== col.id) reorder(src, col.id)
-                  setDragOverId(null)
-                  dragItemRef.current = null
-                }}
               >
-                <span
-                  className="col-settings__handle"
-                  draggable
-                  onDragStart={() => {
-                    dragItemRef.current = col.id
-                  }}
-                >
+                <span className="col-settings__handle" {...dragHandleProps(col.id)}>
                   ⠿
                 </span>
                 <input
