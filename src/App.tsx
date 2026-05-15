@@ -13,8 +13,11 @@ import './App.css'
 export function App() {
   const { files, addFiles, removeFile, clearAll } = useLoadedFiles()
   const { sorted, columns, hasNoTimestamp, allEntries } = useLogTable(files)
-  const { config, reorder, setVisible, merge, unmerge } = useColumnConfig(columns)
-  const visibleConfig = useMemo(() => config.filter((c) => c.visible), [config])
+  const { config, presentIds, reorder, setVisible, merge, unmerge } = useColumnConfig(columns)
+  const visibleConfig = useMemo(
+    () => config.filter((c) => c.visible && presentIds.has(c.id)),
+    [config, presentIds]
+  )
   const table = useLogTableInstance(sorted, visibleConfig)
 
   const hasEntries = files.some((f) => f.entries.length > 0)
@@ -47,6 +50,7 @@ export function App() {
             table={table}
             hasNoTimestamp={hasNoTimestamp}
             config={config}
+            presentIds={presentIds}
             onReorder={reorder}
             onSetVisible={setVisible}
             onMerge={merge}

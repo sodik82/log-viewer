@@ -5,6 +5,7 @@ import './ColumnSettingsPanel.css'
 
 interface Props {
   config: ColumnConfig[]
+  presentIds: Set<string>
   onClose: () => void
   onReorder: (src: string, dst: string) => void
   onSetVisible: (ids: string[], visible: boolean) => void
@@ -18,6 +19,7 @@ function colLabel(id: string) {
 
 export function ColumnSettingsPanel({
   config,
+  presentIds,
   onClose,
   onReorder,
   onSetVisible,
@@ -25,10 +27,10 @@ export function ColumnSettingsPanel({
   onUnmerge,
 }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [showNotPresent, setShowNotPresent] = useState(false)
 
   const { dragOverId, dragHandleProps, dropTargetProps } = useColumnDrag((src, dst) => {
     onReorder(src, dst)
-    // Keep selection in sync — reorderColumns only moves ids, not removes
   })
 
   function toggleSelect(id: string) {
@@ -40,13 +42,21 @@ export function ColumnSettingsPanel({
     })
   }
 
+  const hasNotPresent = config.some((c) => !presentIds.has(c.id))
+  const notPresentCount = config.filter((c) => !presentIds.has(c.id)).length
+  const displayedConfig = showNotPresent ? config : config.filter((c) => presentIds.has(c.id))
+
   const selectedConfigs = config.filter((c) => selected.has(c.id))
-  const visibleCount = config.filter((c) => c.visible).length
   const selectedVisibleCount = selectedConfigs.filter((c) => c.visible).length
   const selectedHiddenCount = selectedConfigs.filter((c) => !c.visible).length
 
+  const presentVisibleCount = config.filter((c) => c.visible && presentIds.has(c.id)).length
+  const selectedPresentVisibleCount = selectedConfigs.filter(
+    (c) => c.visible && presentIds.has(c.id)
+  ).length
+
   const canShow = selectedHiddenCount > 0
-  const canHide = selectedVisibleCount > 0 && visibleCount - selectedVisibleCount >= 1
+  const canHide = selectedVisibleCount > 0 && presentVisibleCount - selectedPresentVisibleCount >= 1
   const canMerge = selectedConfigs.filter((c) => c.visible).length >= 2
   const canUnmerge = selectedConfigs.some((c) => c.sourceColumns.length > 1)
 
@@ -74,9 +84,10 @@ export function ColumnSettingsPanel({
         </div>
 
         <div className="col-settings__list">
-          {config.map((col) => {
+          {displayedConfig.map((col) => {
             const isSelected = selected.has(col.id)
             const isMerged = col.sourceColumns.length > 1
+            const isPresent = presentIds.has(col.id)
 
             return (
               <div
@@ -87,6 +98,7 @@ export function ColumnSettingsPanel({
                   dragOverId === col.id ? 'col-settings__item--drag-over' : '',
                   isSelected ? 'col-settings__item--selected' : '',
                   !col.visible ? 'col-settings__item--hidden' : '',
+                  !isPresent ? 'col-settings__item--not-present' : '',
                 ]
                   .filter(Boolean)
                   .join(' ')}
@@ -103,6 +115,7 @@ export function ColumnSettingsPanel({
                 <span className="col-settings__label">
                   {colLabel(col.displayName)}
                   {!col.visible && <span className="col-settings__hidden-tag"> hidden</span>}
+                  {!isPresent && <span className="col-settings__not-present-tag"> not loaded</span>}
                 </span>
                 {isMerged && (
                   <span className="col-settings__merge-badge">
@@ -136,7 +149,6 @@ export function ColumnSettingsPanel({
             className="col-settings__action-btn col-settings__action-btn--merge"
             disabled={!canMerge}
             onClick={() => {
-              // Pass ids in panel order
               const ordered = configIds.filter((id) => selected.has(id))
               act(() => onMerge(ordered))
             }}
@@ -156,8 +168,8 @@ export function ColumnSettingsPanel({
         <div className="col-settings__footer">
           <button
             type="button"
-            disabled={selected.size === config.length}
-            onClick={() => setSelected(new Set(config.map((c) => c.id)))}
+            disabled={selected.size === displayedConfig.length}
+            onClick={() => setSelected(new Set(displayedConfig.map((c) => c.id)))}
           >
             Check all
           </button>
@@ -168,6 +180,34 @@ export function ColumnSettingsPanel({
           >
             Uncheck all
           </button>
+          {hasNotPresent && (
+            <button
+              type="button"
+              className={[
+                'col-settings__toggle-absent',
+                showNotPresent ? 'col-settings__toggle-absent--active' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              onClick={() => {
+                const next = !showNotPresent
+                setShowNotPresent(next)
+                if (!next) {
+                  setSelected((prev) => {
+                    const cleaned = new Set(prev)
+                    for (const id of prev) {
+                      if (!presentIds.has(id)) cleaned.delete(id)
+                    }
+                    return cleaned
+                  })
+                }
+              }}
+            >
+              {showNotPresent
+                ? `Hide unloaded (${notPresentCount})`
+                : `Show unloaded (${notPresentCount})`}
+            </button>
+          )}
         </div>
       </div>
     </>

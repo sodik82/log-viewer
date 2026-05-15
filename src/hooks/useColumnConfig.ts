@@ -24,6 +24,7 @@ function persist(config: ColumnConfig[]): void {
 
 export function useColumnConfig(sourceColumns: ColumnMeta[]): {
   config: ColumnConfig[]
+  presentIds: Set<string>
   reorder: (srcId: string, dstId: string) => void
   setVisible: (ids: string[], visible: boolean) => void
   merge: (ids: string[]) => void
@@ -38,7 +39,8 @@ export function useColumnConfig(sourceColumns: ColumnMeta[]): {
 
   // Effective config: saved entries + any source columns not yet tracked, appended at end.
   // Also refreshes widths for all configs using current source data.
-  const config = useMemo(() => {
+  const { config, presentIds } = useMemo(() => {
+    const activeSourceIds = new Set(sourceColumns.map((s) => s.id))
     const tracked = new Set(savedConfig.flatMap((c) => c.sourceColumns))
     const newEntries: ColumnConfig[] = sourceColumns
       .filter((s) => !tracked.has(s.id))
@@ -50,10 +52,18 @@ export function useColumnConfig(sourceColumns: ColumnMeta[]): {
         width: s.width,
       }))
 
-    return [...savedConfig, ...newEntries].map((c) => ({
+    const allEntries = [...savedConfig, ...newEntries].map((c) => ({
       ...c,
       width: Math.max(100, ...c.sourceColumns.map((src) => sourceWidths.get(src) ?? c.width)),
     }))
+
+    const ids = new Set(
+      allEntries
+        .filter((c) => c.sourceColumns.some((src) => activeSourceIds.has(src)))
+        .map((c) => c.id)
+    )
+
+    return { config: allEntries, presentIds: ids }
   }, [savedConfig, sourceColumns, sourceWidths])
 
   function commit(next: ColumnConfig[]) {
@@ -113,5 +123,5 @@ export function useColumnConfig(sourceColumns: ColumnMeta[]): {
     commit(next)
   }
 
-  return { config, reorder, setVisible, merge, unmerge }
+  return { config, presentIds, reorder, setVisible, merge, unmerge }
 }

@@ -19,6 +19,7 @@ interface Props {
   table: Table<LogEntry>
   hasNoTimestamp: boolean
   config: ColumnConfig[]
+  presentIds: Set<string>
   onReorder: (src: string, dst: string) => void
   onSetVisible: (ids: string[], visible: boolean) => void
   onMerge: (ids: string[]) => void
@@ -45,6 +46,7 @@ export function LogTable({
   table,
   hasNoTimestamp,
   config,
+  presentIds,
   onReorder,
   onSetVisible,
   onMerge,
@@ -53,8 +55,11 @@ export function LogTable({
   const scrollRef = useRef<HTMLDivElement>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
-  // Visible columns in order (mirrors what TanStack received)
-  const visibleCols = useMemo(() => config.filter((c) => c.visible), [config])
+  // Visible + present columns in order (mirrors what TanStack received)
+  const visibleCols = useMemo(
+    () => config.filter((c) => c.visible && presentIds.has(c.id)),
+    [config, presentIds]
+  )
   const colById = useMemo(() => new Map(config.map((c) => [c.id, c])), [config])
 
   // row.original is pre-transformed data (merged column values already coalesced into entry[col.id])
@@ -111,6 +116,7 @@ export function LogTable({
       {settingsOpen && (
         <ColumnSettingsPanel
           config={config}
+          presentIds={presentIds}
           onClose={() => setSettingsOpen(false)}
           onReorder={onReorder}
           onSetVisible={onSetVisible}
