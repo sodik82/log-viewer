@@ -1,5 +1,3 @@
-import type { LogEntry } from '../types/log'
-
 export interface HistogramBucket {
   start: Date
   end: Date
@@ -12,6 +10,8 @@ export interface BucketingResult {
   totalMin: Date
   totalMax: Date
 }
+
+import type { LogEntry } from '../types/log'
 
 const BUCKET_LADDER_MS = [
   1_000,
@@ -78,4 +78,21 @@ export function computeBuckets(
     totalMin: new Date(minMs),
     totalMax: new Date(maxMs),
   }
+}
+
+export function countEntriesInBuckets<T>(
+  items: readonly T[],
+  getTimestamp: (item: T) => Date | null | undefined,
+  result: BucketingResult
+): number[] {
+  const epochStart = result.buckets[0].start.getTime()
+  const { bucketMs } = result
+  const counts = new Array<number>(result.buckets.length).fill(0)
+  for (const item of items) {
+    const ts = getTimestamp(item)?.getTime()
+    if (ts == null) continue
+    const idx = Math.floor((ts - epochStart) / bucketMs)
+    if (idx >= 0 && idx < counts.length) counts[idx]++
+  }
+  return counts
 }
