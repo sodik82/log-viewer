@@ -42,8 +42,8 @@ export function ColumnSettingsPanel({
     })
   }
 
-  const hasNotPresent = config.some((c) => !presentIds.has(c.id))
   const notPresentCount = config.filter((c) => !presentIds.has(c.id)).length
+  const hasNotPresent = notPresentCount > 0
   const displayedConfig = showNotPresent ? config : config.filter((c) => presentIds.has(c.id))
 
   const selectedConfigs = config.filter((c) => selected.has(c.id))
