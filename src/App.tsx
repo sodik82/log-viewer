@@ -8,6 +8,7 @@ import { useLogTable } from './hooks/useLogTable'
 import { useLogTableInstance } from './hooks/useLogTableInstance'
 import { useColumnConfig } from './hooks/useColumnConfig'
 import type { DateRangeFilterValue } from './components/LogTable/filters/filterFunctions'
+import type { LogEntry } from './types/log'
 import './App.css'
 
 export function App() {
@@ -30,6 +31,12 @@ export function App() {
     [timestampCol]
   )
 
+  const filteredRows = table.getFilteredRowModel().rows
+  const filteredEntries = useMemo(
+    () => filteredRows.map((row) => row.original as LogEntry),
+    [filteredRows]
+  )
+
   return (
     <div className="app">
       <header className="app__header">
@@ -41,6 +48,7 @@ export function App() {
         {hasEntries && hasTimestamps && (
           <TimeHistogram
             entries={allEntries}
+            filteredEntries={filteredEntries}
             filterValue={filterValue}
             onFilterChange={handleFilterChange}
           />

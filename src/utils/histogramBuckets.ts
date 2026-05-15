@@ -79,3 +79,16 @@ export function computeBuckets(
     totalMax: new Date(maxMs),
   }
 }
+
+export function countEntriesInBuckets(entries: LogEntry[], result: BucketingResult): number[] {
+  const epochStart = result.buckets[0].start.getTime()
+  const { bucketMs } = result
+  const counts = new Array<number>(result.buckets.length).fill(0)
+  for (const entry of entries) {
+    const ts = entry._timestamp?.getTime()
+    if (ts == null) continue
+    const idx = Math.floor((ts - epochStart) / bucketMs)
+    if (idx >= 0 && idx < counts.length) counts[idx]++
+  }
+  return counts
+}

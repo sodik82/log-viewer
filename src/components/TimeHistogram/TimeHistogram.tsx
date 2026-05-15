@@ -3,7 +3,7 @@ import { format } from 'date-fns'
 import type { LogEntry } from '../../types/log'
 import type { DateRangeFilterValue, DateRangePreset } from '../LogTable/filters/filterFunctions'
 import { PRESET_OFFSETS } from '../LogTable/filters/filterFunctions'
-import { computeBuckets } from '../../utils/histogramBuckets'
+import { computeBuckets, countEntriesInBuckets } from '../../utils/histogramBuckets'
 import './TimeHistogram.css'
 
 const SVG_HEIGHT = 80
@@ -14,6 +14,7 @@ const MIN_DRAG_PX = 3
 
 interface Props {
   entries: LogEntry[]
+  filteredEntries?: LogEntry[]
   filterValue: DateRangeFilterValue | undefined
   onFilterChange: (value: DateRangeFilterValue | undefined) => void
 }
@@ -43,7 +44,7 @@ function resolveFilterRange(
   return null
 }
 
-export function TimeHistogram({ entries, filterValue, onFilterChange }: Props) {
+export function TimeHistogram({ entries, filteredEntries, filterValue, onFilterChange }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const [containerWidth, setContainerWidth] = useState(600)
   const [dragStart, setDragStart] = useState<number | null>(null)
@@ -62,6 +63,12 @@ export function TimeHistogram({ entries, filterValue, onFilterChange }: Props) {
   const activeRange = useMemo(() => resolveFilterRange(filterValue), [filterValue])
   const fullResult = useMemo(() => computeBuckets(entries), [entries])
   const result = useMemo(() => computeBuckets(entries, 50, activeRange), [entries, activeRange])
+
+  const hasActiveFilters = filteredEntries !== undefined && filteredEntries.length < entries.length
+  const filteredCounts = useMemo(() => {
+    if (!hasActiveFilters || !result || !filteredEntries) return null
+    return countEntriesInBuckets(filteredEntries, result)
+  }, [hasActiveFilters, result, filteredEntries])
 
   const getMouseFraction = useCallback((clientX: number): number => {
     const el = wrapRef.current
@@ -183,19 +190,35 @@ export function TimeHistogram({ entries, filterValue, onFilterChange }: Props) {
           const isZero = bucket.count === 0
           const barH = (bucket.count / maxCount) * BAR_AREA_H
           const y = BAR_AREA_H - barH
+          const w = Math.max(barWidth - 1, 1)
+          const filteredCount = filteredCounts?.[i] ?? 0
+          const filteredBarH = filteredCounts ? (filteredCount / maxCount) * BAR_AREA_H : 0
+          const filteredY = BAR_AREA_H - filteredBarH
+          const baseClass = isZero
+            ? 'histogram__bar--zero'
+            : filteredCounts
+              ? 'histogram__bar--dimmed'
+              : 'histogram__bar'
+          const tooltip =
+            filteredCounts !== null
+              ? `${bucket.count} entries (${filteredCount} matching) · ${format(bucket.start, fmt)} – ${format(bucket.end, fmt)}`
+              : `${bucket.count} entries · ${format(bucket.start, fmt)} – ${format(bucket.end, fmt)}`
           return (
-            <rect
-              key={i}
-              className={isZero ? 'histogram__bar--zero' : 'histogram__bar'}
-              x={x + 0.5}
-              y={y}
-              width={Math.max(barWidth - 1, 1)}
-              height={Math.max(barH, 1)}
-            >
-              <title>
-                {bucket.count} entries · {format(bucket.start, fmt)} – {format(bucket.end, fmt)}
-              </title>
-            </rect>
+            <g key={i}>
+              <rect className={baseClass} x={x + 0.5} y={y} width={w} height={Math.max(barH, 1)}>
+                <title>{tooltip}</title>
+              </rect>
+              {filteredCounts !== null && filteredCount > 0 && (
+                <rect
+                  className="histogram__bar--filtered"
+                  x={x + 0.5}
+                  y={filteredY}
+                  width={w}
+                  height={Math.max(filteredBarH, 1)}
+                  style={{ pointerEvents: 'none' }}
+                />
+              )}
+            </g>
           )
         })}
 
