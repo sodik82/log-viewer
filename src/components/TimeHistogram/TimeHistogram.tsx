@@ -3,7 +3,8 @@ import { format } from 'date-fns'
 import type { LogEntry } from '../../types/log'
 import type { DateRangeFilterValue, DateRangePreset } from '../LogTable/filters/filterFunctions'
 import { PRESET_OFFSETS } from '../LogTable/filters/filterFunctions'
-import { computeBuckets, countEntriesInBuckets } from '../../utils/histogramBuckets'
+import { computeBuckets } from '../../utils/histogramBuckets'
+import type { BucketingResult } from '../../utils/histogramBuckets'
 import './TimeHistogram.css'
 
 const SVG_HEIGHT = 80
@@ -14,7 +15,7 @@ const MIN_DRAG_PX = 3
 
 interface Props {
   entries: LogEntry[]
-  filteredEntries?: LogEntry[]
+  getFilteredCounts?: (result: BucketingResult) => number[]
   filterValue: DateRangeFilterValue | undefined
   onFilterChange: (value: DateRangeFilterValue | undefined) => void
 }
@@ -44,7 +45,7 @@ function resolveFilterRange(
   return null
 }
 
-export function TimeHistogram({ entries, filteredEntries, filterValue, onFilterChange }: Props) {
+export function TimeHistogram({ entries, getFilteredCounts, filterValue, onFilterChange }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const [containerWidth, setContainerWidth] = useState(600)
   const [dragStart, setDragStart] = useState<number | null>(null)
@@ -64,11 +65,10 @@ export function TimeHistogram({ entries, filteredEntries, filterValue, onFilterC
   const fullResult = useMemo(() => computeBuckets(entries), [entries])
   const result = useMemo(() => computeBuckets(entries, 50, activeRange), [entries, activeRange])
 
-  const hasActiveFilters = filteredEntries !== undefined && filteredEntries.length < entries.length
-  const filteredCounts = useMemo(() => {
-    if (!hasActiveFilters || !result || !filteredEntries) return null
-    return countEntriesInBuckets(filteredEntries, result)
-  }, [hasActiveFilters, result, filteredEntries])
+  const filteredCounts = useMemo(
+    () => (getFilteredCounts && result ? getFilteredCounts(result) : null),
+    [getFilteredCounts, result]
+  )
 
   const getMouseFraction = useCallback((clientX: number): number => {
     const el = wrapRef.current

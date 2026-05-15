@@ -8,7 +8,8 @@ import { useLogTable } from './hooks/useLogTable'
 import { useLogTableInstance } from './hooks/useLogTableInstance'
 import { useColumnConfig } from './hooks/useColumnConfig'
 import type { DateRangeFilterValue } from './components/LogTable/filters/filterFunctions'
-import type { LogEntry } from './types/log'
+import { countEntriesInBuckets } from './utils/histogramBuckets'
+import type { BucketingResult } from './utils/histogramBuckets'
 import './App.css'
 
 export function App() {
@@ -32,10 +33,11 @@ export function App() {
   )
 
   const filteredRows = table.getFilteredRowModel().rows
-  const filteredEntries = useMemo(
-    () => filteredRows.map((row) => row.original as LogEntry),
-    [filteredRows]
-  )
+  const getFilteredCounts = useMemo(() => {
+    if (filteredRows.length >= allEntries.length) return undefined
+    return (result: BucketingResult) =>
+      countEntriesInBuckets(filteredRows, (r) => r.original._timestamp, result)
+  }, [filteredRows, allEntries.length])
 
   return (
     <div className="app">
@@ -48,7 +50,7 @@ export function App() {
         {hasEntries && hasTimestamps && (
           <TimeHistogram
             entries={allEntries}
-            filteredEntries={filteredEntries}
+            getFilteredCounts={getFilteredCounts}
             filterValue={filterValue}
             onFilterChange={handleFilterChange}
           />
