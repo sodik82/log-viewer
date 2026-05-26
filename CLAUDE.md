@@ -36,7 +36,7 @@ CI runs `lint` and `build` on every push; `deploy` auto-publishes to GitHub Page
 | `src/hooks/useLoadedFiles.ts` | File state, FileReader orchestration |
 | `src/hooks/useLogTable.ts` | Memoized column derivation, sort, filter |
 | `src/loaders/JsonLogLoader.ts` | Parses JSON arrays and NDJSON; flattens nested objects to dot-notation; runs timestamp detection |
-| `src/loaders/CsvLogLoader.ts` | Parses CSV with headers; dot-notation headers create nested objects; `\.` escapes a literal dot |
+| `src/loaders/CsvLogLoader.ts` | Parses CSV with headers; dot-notation headers are flattened to dot-notation keys (same as JSON loader); `\.` escapes a literal dot; string values starting with `{` are expanded as JSON and flattened |
 | `src/loaders/FreeTextLogLoader.ts` | Parses Java/Logback plain-text `.log` files; handles multiline entries (stack traces, toString dumps) |
 | `src/utils/timestampDetector.ts` | Heuristic for identifying the timestamp field; supports ISO 8601 and Kibana format (`Mar 27, 2026 @ 12:32:30.038`) |
 | `src/utils/columnDeriver.ts` | Scans all entries; emits column list with priority ordering |

@@ -49,11 +49,12 @@ describe('CsvLogLoader — standard CSV', () => {
     expect((e._timestamp as Date).toISOString()).toBe('2026-04-16T14:07:20.480Z')
   })
 
-  it('preserves DEBUG entry fields including nested mdc', () => {
+  it('preserves DEBUG entry fields with mdc flattened to dot-notation keys', () => {
     const e = result.entries[1]
     expect(e.level).toBe('DEBUG')
     expect(e.message).toBe('Loading 1 keys to the cache')
-    expect(e.mdc).toMatchObject({ traceId: '0f17be2f532881a0', spanId: '89d9f72552b6e1' })
+    expect(e['mdc.traceId']).toBe('0f17be2f532881a0')
+    expect(e['mdc.spanId']).toBe('89d9f72552b6e1')
   })
 })
 
@@ -213,8 +214,8 @@ describe('CsvLogLoader — security', () => {
 })
 
 // Kibana "discover" CSV export where every data column is prefixed with _source.
-// All top-level keys start with _ so timestamp detection returns null — timestamps
-// are nested inside the _source object and are not directly visible to the detector.
+// Nested objects from dot-notation headers are flattened to dot-notation keys, so
+// _source.level, _source.mdc.spanId etc. all become direct entry fields.
 const KIBANA_FLAT_HEADER =
   '_index,_id,' +
   '_source.@timestamp,_source.timestamp,_source.level,_source.message,_source.loggerName,' +
@@ -247,12 +248,13 @@ describe('CsvLogLoader — Kibana flat-columns format (all headers _source. pref
     expect(result.entries).toHaveLength(2)
   })
 
-  it('returns null timestampField — timestamps are nested inside _source, not at top level', () => {
-    expect(result.timestampField).toBeNull()
+  it('detects _source.@timestamp as timestamp field', () => {
+    expect(result.timestampField).toBe('_source.@timestamp')
   })
 
-  it('sets _timestamp to null when no timestamp field detected', () => {
-    expect(result.entries[0]._timestamp).toBeNull()
+  it('parses _timestamp as Date from Kibana-format value', () => {
+    expect(result.entries[0]._timestamp).toBeInstanceOf(Date)
+    expect((result.entries[0]._timestamp as Date).toISOString()).toBe('2026-05-24T10:00:01.100Z')
   })
 
   it('enriches entries with internal fields', () => {
@@ -262,45 +264,36 @@ describe('CsvLogLoader — Kibana flat-columns format (all headers _source. pref
     expect(result.entries[1]._rawIndex).toBe(1)
   })
 
-  it('builds _source as a nested object with level and message', () => {
-    const src = result.entries[0]._source as Record<string, unknown>
-    expect(src.level).toBe('INFO')
-    expect(src.message).toBe('Generic item with ID [98765432109876543210] deleted.')
-    expect(src.loggerName).toBe('com.example.app.service.ItemService')
+  it('flattens _source fields to dot-notation keys', () => {
+    const e = result.entries[0]
+    expect(e['_source.level']).toBe('INFO')
+    expect(e['_source.message']).toBe('Generic item with ID [98765432109876543210] deleted.')
+    expect(e['_source.loggerName']).toBe('com.example.app.service.ItemService')
+    expect(e['_source.@timestamp']).toBe('May 24, 2026 @ 10:00:01.100')
   })
 
-  it('preserves @timestamp string inside _source', () => {
-    const src = result.entries[0]._source as Record<string, unknown>
-    expect(src['@timestamp']).toBe('May 24, 2026 @ 10:00:01.100')
+  it('flattens deeply nested _source.mdc fields', () => {
+    const e = result.entries[0]
+    expect(e['_source.mdc.spanId']).toBe('aabbccdd11223344')
+    expect(e['_source.mdc.traceId']).toBe('aabbccddeeff00112233445566778899')
   })
 
-  it('builds _source.mdc as a nested object', () => {
-    const src = result.entries[0]._source as Record<string, unknown>
-    expect(src.mdc).toMatchObject({
-      spanId: 'aabbccdd11223344',
-      traceId: 'aabbccddeeff00112233445566778899',
-    })
-  })
-
-  it('builds _source.kubernetes as a nested object', () => {
-    const src = result.entries[0]._source as Record<string, unknown>
-    expect(src.kubernetes).toMatchObject({
-      pod_name: 'myservice-1a2b3c4d5e-fghij',
-      namespace_name: 'example-ns',
-    })
+  it('flattens deeply nested _source.kubernetes fields', () => {
+    const e = result.entries[0]
+    expect(e['_source.kubernetes.pod_name']).toBe('myservice-1a2b3c4d5e-fghij')
+    expect(e['_source.kubernetes.namespace_name']).toBe('example-ns')
   })
 
   it('handles slash in kubernetes label key', () => {
-    const src = result.entries[0]._source as Record<string, unknown>
-    const labels = (src.kubernetes as Record<string, unknown>).labels as Record<string, unknown>
-    expect(labels['app_kubernetes_io/name']).toBe('myservice')
+    expect(result.entries[0]['_source.kubernetes.labels.app_kubernetes_io/name']).toBe('myservice')
   })
 
   it('parses access-log message with embedded quotes in second entry', () => {
-    const src = result.entries[1]._source as Record<string, unknown>
-    expect(src.level).toBe('INFO')
-    expect(src.loggerName).toBe('io.example.http.access-log')
-    expect(src.message as string).toContain('DELETE /myservice/v2/DEMO/items')
+    const e = result.entries[1]
+    expect(e['_source.level']).toBe('INFO')
+    expect(e['_source.loggerName']).toBe('io.example.http.access-log')
+    expect(e['_source.message'] as string).toContain('DELETE /myservice/v2/DEMO/items')
+    expect((e._timestamp as Date).toISOString()).toBe('2026-05-24T10:00:01.200Z')
   })
 })
 

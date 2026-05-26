@@ -24,7 +24,7 @@ export class CsvLogLoader implements ILogLoader {
         if (val === '') continue
         this.setNested(entry, key, val)
       }
-      return this.expandJsonFields(entry)
+      return this.flattenJson(this.expandJsonFields(entry))
     })
 
     if (rawObjects.length === 0) return { entries: [], timestampField: null }
