@@ -18,7 +18,7 @@ export class FreeTextLogLoader implements ILogLoader {
 
   isSupported(ext: string, contentHint: string): boolean {
     if (ext !== '.log') return false
-    const lines = contentHint.trimStart().replace(/\r/g, '').split('\n').slice(0, 10)
+    const lines = contentHint.trimStart().slice(0, 10_000).split(/\r?\n/).slice(0, 10)
     const result = lines.some((l) => HEADER_RE.test(l))
     console.debug(
       '[log-viewer] FreeTextLogLoader.isSupported →',
@@ -32,14 +32,14 @@ export class FreeTextLogLoader implements ILogLoader {
   }
 
   parse(content: string, fileName: string): ParseResult {
-    const trimmed = content.replace(/\r/g, '').trim()
+    const trimmed = content.trim()
     if (!trimmed) return { entries: [], timestampField: null }
 
     const entries: LogEntry[] = []
     let pending: Pending | null = null
     let rawIndex = 0
 
-    const allLines = trimmed.split('\n')
+    const allLines = trimmed.split(/\r?\n/)
     let headerCount = 0
     for (const line of allLines) {
       const m = line.match(HEADER_RE)
