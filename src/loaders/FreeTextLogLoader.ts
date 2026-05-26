@@ -1,7 +1,7 @@
 import type { ILogLoader, LogEntry, ParseResult } from '../types/log'
 
 const HEADER_RE =
-  /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) \[([^\]]+)\] \[([^\]]*)\] (ERROR|WARN|INFO|DEBUG|TRACE|FATAL)\s+(\S+) - (.*)$/
+  /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) \[([^\]]+)\](?:\s+\[([^\]]*)\])? (ERROR|WARN|INFO|DEBUG|TRACE|FATAL)\s+(\S+) - (.*)$/
 
 interface Pending {
   timestamp: string
@@ -18,8 +18,8 @@ export class FreeTextLogLoader implements ILogLoader {
 
   isSupported(ext: string, contentHint: string): boolean {
     if (ext !== '.log') return false
-    const first = contentHint.trimStart()[0]
-    return first !== '[' && first !== '{'
+    const firstLine = contentHint.trimStart().split('\n')[0]
+    return /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(firstLine)
   }
 
   parse(content: string, fileName: string): ParseResult {
@@ -37,7 +37,7 @@ export class FreeTextLogLoader implements ILogLoader {
         pending = {
           timestamp: m[1],
           thread: m[2],
-          mdc: m[3],
+          mdc: m[3] ?? '',
           level: m[4],
           logger: m[5],
           messageLines: [m[6]],

@@ -97,3 +97,10 @@ Update CLAUDE.md whenever significant architecture change is done or new npm scr
 ## Testing
 
 Always anonymize data/samples provided in prompt when preparing test data for tests.
+
+## Sample data
+
+When adding a new log format or extending an existing loader, always update `sample-data/` alongside the code:
+
+- Add or update the relevant sample file (e.g. `app.log`) to include entries that exercise the new format or feature. If the loader handles multiple variants, mix them in the same file.
+- Update `sample-data/README.md`: describe the new format variant and add a **Try:** suggestion that demonstrates it.
