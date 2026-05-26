@@ -21,9 +21,13 @@ The same ten entries as `app-logs.ndjson`, wrapped in `[...]`. Load both at once
 ---
 
 ### `app.log` — Java / Logback plain text
-Free-text `.log` format: `YYYY-MM-DD HH:mm:ss.SSS [thread] [mdc] LEVEL  logger - message`. The stack trace after the ERROR entry is folded into that entry's `message` field rather than becoming a separate row.
+Free-text `.log` format. The loader handles two common Logback patterns in the same file:
+- `YYYY-MM-DD HH:mm:ss.SSS [thread] [traceId] LEVEL logger - message` — request-scoped entries with a trace ID in the MDC bracket
+- `YYYY-MM-DD HH:mm:ss.SSS [thread] LEVEL logger - message` — startup and background-worker entries with no MDC bracket
 
-**Try:** Expand the ERROR row to see the full stack trace. Notice that the MDC bracket (e.g. `3fa85f64573c1d80`) is captured in the `mdc` column.
+The stack trace after the ERROR entry is folded into that entry's `message` field rather than becoming a separate row.
+
+**Try:** Expand the ERROR row to see the full stack trace. Filter `mdc` = `3fa85f64573c1d80` to trace the full order flow across services (only request-scoped entries carry this field).
 
 ---
 

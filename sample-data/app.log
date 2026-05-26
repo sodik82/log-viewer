@@ -1,15 +1,17 @@
-2026-04-16 14:05:13.001 [main] [] INFO  com.example.app.Application - Starting application version 2.4.1
+2026-04-16 14:05:13.001 [main] INFO  com.example.app.Application - Starting application version 2.4.1
+2026-04-16 14:05:13.198 [main] DEBUG com.example.app.Application - Loaded config: datasource=jdbc:postgresql://db:5432/orders, pool=10
 2026-04-16 14:05:13.224 [http-nio-8080-exec-1] [3fa85f64573c1d80] INFO  com.example.auth.JwtFilter - JWT verified for user user-42
 2026-04-16 14:05:14.110 [http-nio-8081-exec-3] [3fa85f64573c1d80] INFO  com.example.order.OrderController - Order ORD-9001 created for user user-42
 2026-04-16 14:05:15.300 [http-nio-8082-exec-2] [3fa85f64573c1d80] INFO  com.example.payment.PaymentService - Payment initiated for order ORD-9001 amount 49.99 USD
 2026-04-16 14:05:16.850 [http-nio-8082-exec-2] [3fa85f64573c1d80] WARN  com.example.payment.PaymentGateway - Payment gateway response timeout after 1500ms, retrying (attempt 1/3)
 2026-04-16 14:05:17.950 [http-nio-8082-exec-2] [3fa85f64573c1d80] INFO  com.example.payment.PaymentGateway - Payment authorised, txnId=TXN-55512
 2026-04-16 14:05:18.440 [http-nio-8081-exec-3] [3fa85f64573c1d80] INFO  com.example.order.OrderService - Order ORD-9001 confirmed and dispatched to fulfilment
-2026-04-16 14:07:20.480 [cache-worker-1] [] DEBUG com.example.order.cache.CacheLoader - Cache miss for key orders:ORD-9001, loading from DB
-2026-04-16 14:08:00.500 [retry-scheduler-1] [] ERROR com.example.payment.PaymentGateway - Failed to reach payment gateway
+2026-04-16 14:07:20.480 [cache-worker-1] DEBUG com.example.order.cache.CacheLoader - Cache miss for key orders:ORD-9001, loading from DB
+2026-04-16 14:08:00.500 [retry-scheduler-1] ERROR com.example.payment.PaymentGateway - Failed to reach payment gateway
 java.net.ConnectException: Connection refused
 	at com.example.payment.HttpClient.post(HttpClient.java:112)
 	at com.example.payment.PaymentGateway.charge(PaymentGateway.java:58)
 	at com.example.payment.RetryScheduler.run(RetryScheduler.java:34)
 2026-04-16 14:09:45.123 [http-nio-8080-exec-5] [1e2f3a4b5c6d7e8f] WARN  com.example.auth.TokenValidator - Access token expired for user user-17, refreshing
 2026-04-16 14:09:45.200 [http-nio-8080-exec-5] [1e2f3a4b5c6d7e8f] INFO  com.example.auth.TokenValidator - Token refreshed successfully for user user-17
+2026-04-16 14:10:00.001 [metrics-reporter-1] INFO  com.example.app.MetricsReporter - Uptime 5min — heap 210MB/512MB, threads 42, requests 1204

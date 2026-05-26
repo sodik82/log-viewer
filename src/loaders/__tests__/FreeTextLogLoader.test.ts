@@ -195,3 +195,105 @@ describe('FreeTextLogLoader — all log levels', () => {
     })
   }
 })
+
+// Single-bracket format: no MDC/traceId bracket
+const LINE_NO_MDC =
+  '2026-05-25 15:24:51.441 [http-nio-8080-exec-8] INFO  com.example.app.Service - Request received'
+// Two-bracket format with trace ID (matches real Spring Boot / Logback output)
+const LINE_TRACE_ID =
+  '2026-05-25 15:24:51.441 [http-nio-8080-exec-8] [aaf0eb1a40cf6ebf43d732d86224f1c0] DEBUG com.example.app.Filter - POST /api/v1/events'
+
+describe('FreeTextLogLoader — single-bracket format (no MDC)', () => {
+  const result = loader.parse(LINE_NO_MDC, 'app.log')
+
+  it('parses the entry', () => {
+    expect(result.entries).toHaveLength(1)
+  })
+
+  it('extracts fields correctly', () => {
+    const e = result.entries[0]
+    expect(e.level).toBe('INFO')
+    expect(e.thread).toBe('http-nio-8080-exec-8')
+    expect(e.logger).toBe('com.example.app.Service')
+    expect(e.message).toBe('Request received')
+  })
+
+  it('omits mdc field when no MDC bracket present', () => {
+    expect('mdc' in result.entries[0]).toBe(false)
+  })
+})
+
+describe('FreeTextLogLoader — two-bracket format with trace ID', () => {
+  const result = loader.parse(LINE_TRACE_ID, 'app.log')
+
+  it('parses the entry', () => {
+    expect(result.entries).toHaveLength(1)
+  })
+
+  it('captures trace ID as mdc field', () => {
+    expect(result.entries[0].mdc).toBe('aaf0eb1a40cf6ebf43d732d86224f1c0')
+  })
+})
+
+describe('FreeTextLogLoader — mixed single- and two-bracket entries', () => {
+  it('parses both formats in the same file', () => {
+    const content = `${LINE_NO_MDC}\n${LINE_TRACE_ID}`
+    const result = loader.parse(content, 'app.log')
+    expect(result.entries).toHaveLength(2)
+    expect('mdc' in result.entries[0]).toBe(false)
+    expect(result.entries[1].mdc).toBe('aaf0eb1a40cf6ebf43d732d86224f1c0')
+  })
+})
+
+describe('FreeTextLogLoader — Windows line endings (CRLF)', () => {
+  const crlf = (s: string) => s.replace(/\n/g, '\r\n')
+
+  it('isSupported accepts a CRLF file', () => {
+    expect(loader.isSupported('.log', crlf(LINE_INFO + '\n' + LINE_WARN))).toBe(true)
+  })
+
+  it('parse handles CRLF — correct entry count', () => {
+    const result = loader.parse(crlf(LINE_INFO + '\n' + LINE_WARN), 'app.log')
+    expect(result.entries).toHaveLength(2)
+  })
+
+  it('parse handles CRLF — no stray \\r in message', () => {
+    const result = loader.parse(crlf(LINE_INFO), 'app.log')
+    expect(result.entries[0].message).toBe('Application started successfully')
+  })
+
+  it('parse handles CRLF — multiline stack trace intact', () => {
+    const result = loader.parse(crlf(LINE_ERROR), 'app.log')
+    const msg = result.entries[0].message as string
+    expect(msg).toContain('NullPointerException')
+    expect(msg).toContain('DataProcessor.java:87')
+    expect(msg).not.toMatch(/\r/)
+  })
+})
+
+describe('FreeTextLogLoader — isSupported heuristic', () => {
+  it('accepts .log file starting with a dated log line', () => {
+    expect(loader.isSupported('.log', LINE_INFO)).toBe(true)
+  })
+
+  it('accepts .log file with single-bracket dated log line', () => {
+    expect(loader.isSupported('.log', LINE_NO_MDC)).toBe(true)
+  })
+
+  it('rejects .log file starting with [ (JSON array)', () => {
+    expect(loader.isSupported('.log', '[{"level":"INFO"}]')).toBe(false)
+  })
+
+  it('rejects .log file starting with { (NDJSON)', () => {
+    expect(loader.isSupported('.log', '{"level":"INFO"}')).toBe(false)
+  })
+
+  it('accepts .log file with a preamble before the first header line', () => {
+    expect(loader.isSupported('.log', 'some preamble text\n' + LINE_INFO)).toBe(true)
+  })
+
+  it('rejects non-.log extensions', () => {
+    expect(loader.isSupported('.json', LINE_INFO)).toBe(false)
+    expect(loader.isSupported('.txt', LINE_INFO)).toBe(false)
+  })
+})

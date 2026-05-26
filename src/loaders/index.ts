@@ -8,5 +8,14 @@ const LOADERS: ILogLoader[] = [jsonLoader, new CsvLogLoader(), new FreeTextLogLo
 
 export function getLoaderForFile(fileName: string, contentHint = ''): ILogLoader {
   const ext = '.' + (fileName.split('.').pop() ?? '').toLowerCase()
-  return LOADERS.find((l) => l.isSupported(ext, contentHint)) ?? jsonLoader
+  const loader = LOADERS.find((l) => l.isSupported(ext, contentHint)) ?? jsonLoader
+  console.debug(
+    '[log-viewer] loader selected:',
+    loader.name,
+    '| ext:',
+    ext,
+    '| first 120 chars:',
+    JSON.stringify(contentHint.slice(0, 120))
+  )
+  return loader
 }

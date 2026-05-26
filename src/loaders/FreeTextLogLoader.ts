@@ -1,7 +1,7 @@
 import type { ILogLoader, LogEntry, ParseResult } from '../types/log'
 
 const HEADER_RE =
-  /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) \[([^\]]+)\] \[([^\]]*)\] (ERROR|WARN|INFO|DEBUG|TRACE|FATAL)\s+(\S+) - (.*)$/
+  /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) \[([^\]]+)\](?:\s+\[([^\]]*)\])? (ERROR|WARN|INFO|DEBUG|TRACE|FATAL)\s+(\S+) - (.*)$/
 
 interface Pending {
   timestamp: string
@@ -18,8 +18,17 @@ export class FreeTextLogLoader implements ILogLoader {
 
   isSupported(ext: string, contentHint: string): boolean {
     if (ext !== '.log') return false
-    const first = contentHint.trimStart()[0]
-    return first !== '[' && first !== '{'
+    const lines = contentHint.trimStart().slice(0, 10_000).split(/\r?\n/).slice(0, 10)
+    const result = lines.some((l) => HEADER_RE.test(l))
+    console.debug(
+      '[log-viewer] FreeTextLogLoader.isSupported →',
+      result,
+      '| lines tested:',
+      lines.length,
+      '| line[0]:',
+      JSON.stringify(lines[0]?.slice(0, 100))
+    )
+    return result
   }
 
   parse(content: string, fileName: string): ParseResult {
@@ -30,14 +39,17 @@ export class FreeTextLogLoader implements ILogLoader {
     let pending: Pending | null = null
     let rawIndex = 0
 
-    for (const line of trimmed.split('\n')) {
+    const allLines = trimmed.split(/\r?\n/)
+    let headerCount = 0
+    for (const line of allLines) {
       const m = line.match(HEADER_RE)
       if (m) {
+        headerCount++
         if (pending) entries.push(this.flush(pending, fileName))
         pending = {
           timestamp: m[1],
           thread: m[2],
-          mdc: m[3],
+          mdc: m[3] ?? '',
           level: m[4],
           logger: m[5],
           messageLines: [m[6]],
@@ -49,6 +61,23 @@ export class FreeTextLogLoader implements ILogLoader {
     }
 
     if (pending) entries.push(this.flush(pending, fileName))
+
+    console.debug(
+      '[log-viewer] FreeTextLogLoader.parse:',
+      fileName,
+      '| total lines:',
+      allLines.length,
+      '| header lines matched:',
+      headerCount,
+      '| entries:',
+      entries.length
+    )
+    if (headerCount === 0) {
+      console.debug(
+        '[log-viewer] first 3 lines that did NOT match HEADER_RE:',
+        allLines.slice(0, 3).map((l) => JSON.stringify(l))
+      )
+    }
 
     return { entries, timestampField: entries.length > 0 ? 'timestamp' : null }
   }
