@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { ColumnConfig } from '../../types/log'
 import { useColumnDrag } from '../../hooks/useColumnDrag'
 import './ColumnSettingsPanel.css'
+import { TIMESTAMP_FIELD } from '../../utils/internalFields'
 
 interface Props {
   config: ColumnConfig[]
@@ -14,7 +15,7 @@ interface Props {
 }
 
 function colLabel(id: string) {
-  return id === '_timestamp' ? 'timestamp' : id
+  return id === TIMESTAMP_FIELD ? 'timestamp' : id
 }
 
 export function ColumnSettingsPanel({

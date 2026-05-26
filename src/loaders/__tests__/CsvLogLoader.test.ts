@@ -49,11 +49,12 @@ describe('CsvLogLoader — standard CSV', () => {
     expect((e._timestamp as Date).toISOString()).toBe('2026-04-16T14:07:20.480Z')
   })
 
-  it('preserves DEBUG entry fields including nested mdc', () => {
+  it('preserves DEBUG entry fields with mdc flattened to dot-notation keys', () => {
     const e = result.entries[1]
     expect(e.level).toBe('DEBUG')
     expect(e.message).toBe('Loading 1 keys to the cache')
-    expect(e.mdc).toMatchObject({ traceId: '0f17be2f532881a0', spanId: '89d9f72552b6e1' })
+    expect(e['mdc.traceId']).toBe('0f17be2f532881a0')
+    expect(e['mdc.spanId']).toBe('89d9f72552b6e1')
   })
 })
 
@@ -184,6 +185,12 @@ describe('CsvLogLoader — JSON field edge cases', () => {
     expect(result.entries[0].payload).toBe('{not valid json')
   })
 
+  it('preserves string starting with { but not ending with } without attempting JSON.parse', () => {
+    const csv = 'timestamp,message\n2026-04-14T11:11:05.000Z,{dependency-injection} started'
+    const result = loader.parse(csv, 'test.csv')
+    expect(result.entries[0].message).toBe('{dependency-injection} started')
+  })
+
   it('preserves JSON array value without expansion', () => {
     const csv = 'timestamp,payload\n2026-04-14T11:11:05.000Z,"[1,2,3]"'
     const result = loader.parse(csv, 'test.csv')
@@ -195,6 +202,17 @@ describe('CsvLogLoader — JSON field edge cases', () => {
     const result = loader.parse(csv, 'test.csv')
     expect(result.entries[0]['context.user']).toBe('alice')
     expect(result.entries[0]).not.toHaveProperty('meta')
+  })
+
+  it('expanded JSON fields take precedence over same-named top-level columns', () => {
+    // level appears both as a top-level column and inside the _source JSON blob;
+    // the expanded value should win regardless of column order in the CSV
+    const csv =
+      'timestamp,level,_source\n' +
+      '2026-04-14T11:11:05.000Z,STALE,"{""level"":""INFO"",""message"":""ok""}"'
+    const result = loader.parse(csv, 'test.csv')
+    expect(result.entries[0].level).toBe('INFO')
+    expect(result.entries[0].message).toBe('ok')
   })
 })
 
@@ -209,6 +227,90 @@ describe('CsvLogLoader — security', () => {
     const csv = 'constructor.prototype.polluted,level\ntrue,ERROR'
     loader.parse(csv, 'evil.csv')
     expect(({} as Record<string, unknown>)['polluted']).toBeUndefined()
+  })
+})
+
+// Kibana "discover" CSV export where every data column is prefixed with _source.
+// Nested objects from dot-notation headers are flattened to dot-notation keys, so
+// _source.level, _source.mdc.spanId etc. all become direct entry fields.
+const KIBANA_FLAT_HEADER =
+  '_index,_id,' +
+  '_source.@timestamp,_source.timestamp,_source.level,_source.message,_source.loggerName,' +
+  '_source.mdc.spanId,_source.mdc.traceId,' +
+  '_source.kubernetes.pod_name,_source.kubernetes.namespace_name,' +
+  '_source.kubernetes.labels.app_kubernetes_io/name'
+
+const KIBANA_FLAT_ROW_INFO =
+  'logs-example-2026.05.24,aAAAAAAAAAAAAAAAA111,' +
+  '"May 24, 2026 @ 10:00:01.100",2026-05-24T08:00:01.100Z,INFO,' +
+  'Generic item with ID [98765432109876543210] deleted.,com.example.app.service.ItemService,' +
+  'aabbccdd11223344,aabbccddeeff00112233445566778899,' +
+  'myservice-1a2b3c4d5e-fghij,example-ns,myservice'
+
+const KIBANA_FLAT_ROW_ACCESS =
+  'logs-example-2026.05.24,bBBBBBBBBBBBBBBBB222,' +
+  '"May 24, 2026 @ 10:00:01.200",2026-05-24T08:00:01.200Z,INFO,' +
+  '"10.0.1.100 - CN=appclient [24/May/2026:08:00:01 +0000] 29 ms ""DELETE /myservice/v2/DEMO/items HTTP/1.1"" 204",io.example.http.access-log,' +
+  'aabbccdd11223344,aabbccddeeff00112233445566778899,' +
+  'myservice-1a2b3c4d5e-fghij,example-ns,myservice'
+
+const KIBANA_FLAT_CSV = [KIBANA_FLAT_HEADER, KIBANA_FLAT_ROW_INFO, KIBANA_FLAT_ROW_ACCESS].join(
+  '\n'
+)
+
+describe('CsvLogLoader — Kibana flat-columns format (all headers _source. prefixed)', () => {
+  const result = loader.parse(KIBANA_FLAT_CSV, 'kibana-flat.csv')
+
+  it('parses two entries', () => {
+    expect(result.entries).toHaveLength(2)
+  })
+
+  it('detects _source.@timestamp as timestamp field', () => {
+    expect(result.timestampField).toBe('_source.@timestamp')
+  })
+
+  it('parses _timestamp as Date from Kibana-format value', () => {
+    expect(result.entries[0]._timestamp).toBeInstanceOf(Date)
+    expect((result.entries[0]._timestamp as Date).toISOString()).toBe('2026-05-24T10:00:01.100Z')
+  })
+
+  it('enriches entries with internal fields', () => {
+    const e = result.entries[0]
+    expect(e._sourceFile).toBe('kibana-flat.csv')
+    expect(e._rawIndex).toBe(0)
+    expect(result.entries[1]._rawIndex).toBe(1)
+  })
+
+  it('flattens _source fields to dot-notation keys', () => {
+    const e = result.entries[0]
+    expect(e['_source.level']).toBe('INFO')
+    expect(e['_source.message']).toBe('Generic item with ID [98765432109876543210] deleted.')
+    expect(e['_source.loggerName']).toBe('com.example.app.service.ItemService')
+    expect(e['_source.@timestamp']).toBe('May 24, 2026 @ 10:00:01.100')
+  })
+
+  it('flattens deeply nested _source.mdc fields', () => {
+    const e = result.entries[0]
+    expect(e['_source.mdc.spanId']).toBe('aabbccdd11223344')
+    expect(e['_source.mdc.traceId']).toBe('aabbccddeeff00112233445566778899')
+  })
+
+  it('flattens deeply nested _source.kubernetes fields', () => {
+    const e = result.entries[0]
+    expect(e['_source.kubernetes.pod_name']).toBe('myservice-1a2b3c4d5e-fghij')
+    expect(e['_source.kubernetes.namespace_name']).toBe('example-ns')
+  })
+
+  it('handles slash in kubernetes label key', () => {
+    expect(result.entries[0]['_source.kubernetes.labels.app_kubernetes_io/name']).toBe('myservice')
+  })
+
+  it('parses access-log message with embedded quotes in second entry', () => {
+    const e = result.entries[1]
+    expect(e['_source.level']).toBe('INFO')
+    expect(e['_source.loggerName']).toBe('io.example.http.access-log')
+    expect(e['_source.message'] as string).toContain('DELETE /myservice/v2/DEMO/items')
+    expect((e._timestamp as Date).toISOString()).toBe('2026-05-24T10:00:01.200Z')
   })
 })
 
