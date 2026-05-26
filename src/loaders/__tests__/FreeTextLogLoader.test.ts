@@ -245,6 +245,32 @@ describe('FreeTextLogLoader — mixed single- and two-bracket entries', () => {
   })
 })
 
+describe('FreeTextLogLoader — Windows line endings (CRLF)', () => {
+  const crlf = (s: string) => s.replace(/\n/g, '\r\n')
+
+  it('isSupported accepts a CRLF file', () => {
+    expect(loader.isSupported('.log', crlf(LINE_INFO + '\n' + LINE_WARN))).toBe(true)
+  })
+
+  it('parse handles CRLF — correct entry count', () => {
+    const result = loader.parse(crlf(LINE_INFO + '\n' + LINE_WARN), 'app.log')
+    expect(result.entries).toHaveLength(2)
+  })
+
+  it('parse handles CRLF — no stray \\r in message', () => {
+    const result = loader.parse(crlf(LINE_INFO), 'app.log')
+    expect(result.entries[0].message).toBe('Application started successfully')
+  })
+
+  it('parse handles CRLF — multiline stack trace intact', () => {
+    const result = loader.parse(crlf(LINE_ERROR), 'app.log')
+    const msg = result.entries[0].message as string
+    expect(msg).toContain('NullPointerException')
+    expect(msg).toContain('DataProcessor.java:87')
+    expect(msg).not.toMatch(/\r/)
+  })
+})
+
 describe('FreeTextLogLoader — isSupported heuristic', () => {
   it('accepts .log file starting with a dated log line', () => {
     expect(loader.isSupported('.log', LINE_INFO)).toBe(true)
@@ -262,8 +288,8 @@ describe('FreeTextLogLoader — isSupported heuristic', () => {
     expect(loader.isSupported('.log', '{"level":"INFO"}')).toBe(false)
   })
 
-  it('rejects .log file with non-dated first line', () => {
-    expect(loader.isSupported('.log', 'some preamble text\n' + LINE_INFO)).toBe(false)
+  it('accepts .log file with a preamble before the first header line', () => {
+    expect(loader.isSupported('.log', 'some preamble text\n' + LINE_INFO)).toBe(true)
   })
 
   it('rejects non-.log extensions', () => {
