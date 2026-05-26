@@ -11,6 +11,7 @@ import { ColumnSettingsPanel } from './ColumnSettingsPanel'
 import { highlightText } from '../../utils/highlightText'
 import { useColumnDrag } from '../../hooks/useColumnDrag'
 import type { TextFilterValue } from './filters/filterFunctions'
+import { TIMESTAMP_FIELD } from '../../utils/internalFields'
 import './LogTable.css'
 
 const ROW_HEIGHT_ESTIMATE = 29
@@ -27,7 +28,7 @@ interface Props {
 }
 
 function renderExpandedValue(col: ColumnConfig, value: unknown): string {
-  if (col.id === '_timestamp') {
+  if (col.id === TIMESTAMP_FIELD) {
     return value instanceof Date ? value.toISOString() : ''
   }
   if (value === null || value === undefined) return ''
@@ -64,7 +65,7 @@ export function LogTable({
 
   // row.original is pre-transformed data (merged column values already coalesced into entry[col.id])
   function getRowValue(col: ColumnConfig, entry: LogEntry): unknown {
-    if (col.id === '_timestamp') return entry._timestamp
+    if (col.id === TIMESTAMP_FIELD) return entry._timestamp
     return entry[col.id]
   }
 

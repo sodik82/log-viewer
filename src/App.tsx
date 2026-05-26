@@ -10,6 +10,7 @@ import { useColumnConfig } from './hooks/useColumnConfig'
 import type { DateRangeFilterValue } from './components/LogTable/filters/filterFunctions'
 import { countEntriesInBuckets } from './utils/histogramBuckets'
 import type { BucketingResult } from './utils/histogramBuckets'
+import { TIMESTAMP_FIELD } from './utils/internalFields'
 import './App.css'
 
 export function App() {
@@ -25,7 +26,7 @@ export function App() {
   const hasEntries = files.some((f) => f.entries.length > 0)
   const hasTimestamps = allEntries.some((e) => e._timestamp !== null)
 
-  const timestampCol = table.getColumn('_timestamp')
+  const timestampCol = table.getColumn(TIMESTAMP_FIELD)
   const filterValue = timestampCol?.getFilterValue() as DateRangeFilterValue | undefined
   const handleFilterChange = useCallback(
     (v: DateRangeFilterValue | undefined) => timestampCol?.setFilterValue(v),

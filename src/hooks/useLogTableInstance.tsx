@@ -17,11 +17,12 @@ import {
   type TextFilterValue,
 } from '../components/LogTable/filters/filterFunctions'
 import { highlightText } from '../utils/highlightText'
+import { TIMESTAMP_FIELD } from '../utils/internalFields'
 
 const FACET_THRESHOLD = 20
 
 function renderCellValue(col: ColumnConfig, value: unknown): string {
-  if (col.id === '_timestamp') {
+  if (col.id === TIMESTAMP_FIELD) {
     return value instanceof Date ? value.toISOString() : ''
   }
   if (value === null || value === undefined) return ''
@@ -58,7 +59,7 @@ export function useLogTableInstance(data: LogEntry[], columns: ColumnConfig[]): 
   const facetColumns = useMemo(() => {
     const facets = new Set<string>()
     for (const col of columns) {
-      if (col.id === '_timestamp') continue
+      if (col.id === TIMESTAMP_FIELD) continue
       const distinct = new Set(transformedData.map((e) => String(e[col.id] ?? '')))
       if (distinct.size > 0 && distinct.size <= FACET_THRESHOLD) facets.add(col.id)
     }
@@ -87,25 +88,25 @@ export function useLogTableInstance(data: LogEntry[], columns: ColumnConfig[]): 
     const dataCols: ColumnDef<LogEntry>[] = columns.map((col) => ({
       id: col.id,
       // Data is pre-transformed: merged column values are already written to entry[col.id].
-      accessorFn: (row) => (col.id === '_timestamp' ? row._timestamp : row[col.id]),
+      accessorFn: (row) => (col.id === TIMESTAMP_FIELD ? row._timestamp : row[col.id]),
       header: col.displayName,
       size: col.width,
       filterFn:
-        col.id === '_timestamp'
+        col.id === TIMESTAMP_FIELD
           ? dateRangeFilterFn
           : facetColumns.has(col.id)
             ? smartFilterFn
             : textFilterFn,
       meta: {
         filterType:
-          col.id === '_timestamp'
+          col.id === TIMESTAMP_FIELD
             ? ('dateRange' as const)
             : facetColumns.has(col.id)
               ? ('facet' as const)
               : ('text' as const),
       },
       cell: ({ row, column }) => {
-        const raw = col.id === '_timestamp' ? row.original._timestamp : row.original[col.id]
+        const raw = col.id === TIMESTAMP_FIELD ? row.original._timestamp : row.original[col.id]
         const text = renderCellValue(col, raw)
         const fv = column.getFilterValue()
         return typeof fv === 'object' && fv !== null && 'operator' in fv

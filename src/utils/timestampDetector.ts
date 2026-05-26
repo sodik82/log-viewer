@@ -17,6 +17,8 @@ const KIBANA_MONTHS: Record<string, number> = {
 const MS_EPOCH_MIN = 1_000_000_000_000
 const MS_EPOCH_MAX = 9_999_999_999_999
 
+import { isInternalField } from './internalFields'
+
 const PRIORITY_NAMES = [
   'timestamp',
   'time',
@@ -52,7 +54,7 @@ export function detectTimestampField(entries: Record<string, unknown>[]): string
 
   for (const entry of sample) {
     for (const [key, val] of Object.entries(entry)) {
-      if (key.startsWith('_')) continue
+      if (isInternalField(key)) continue
       if (val !== null && val !== undefined) {
         fieldTotal.set(key, (fieldTotal.get(key) ?? 0) + 1)
         if (isTimestampValue(val)) {

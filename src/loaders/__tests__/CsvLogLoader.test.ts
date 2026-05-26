@@ -212,6 +212,98 @@ describe('CsvLogLoader — security', () => {
   })
 })
 
+// Kibana "discover" CSV export where every data column is prefixed with _source.
+// All top-level keys start with _ so timestamp detection returns null — timestamps
+// are nested inside the _source object and are not directly visible to the detector.
+const KIBANA_FLAT_HEADER =
+  '_index,_id,' +
+  '_source.@timestamp,_source.timestamp,_source.level,_source.message,_source.loggerName,' +
+  '_source.mdc.spanId,_source.mdc.traceId,' +
+  '_source.kubernetes.pod_name,_source.kubernetes.namespace_name,' +
+  '_source.kubernetes.labels.app_kubernetes_io/name'
+
+const KIBANA_FLAT_ROW_INFO =
+  'logs-example-2026.05.24,aAAAAAAAAAAAAAAAA111,' +
+  '"May 24, 2026 @ 10:00:01.100",2026-05-24T08:00:01.100Z,INFO,' +
+  'Generic item with ID [98765432109876543210] deleted.,com.example.app.service.ItemService,' +
+  'aabbccdd11223344,aabbccddeeff00112233445566778899,' +
+  'myservice-1a2b3c4d5e-fghij,example-ns,myservice'
+
+const KIBANA_FLAT_ROW_ACCESS =
+  'logs-example-2026.05.24,bBBBBBBBBBBBBBBBB222,' +
+  '"May 24, 2026 @ 10:00:01.200",2026-05-24T08:00:01.200Z,INFO,' +
+  '"10.0.1.100 - CN=appclient [24/May/2026:08:00:01 +0000] 29 ms ""DELETE /myservice/v2/DEMO/items HTTP/1.1"" 204",io.example.http.access-log,' +
+  'aabbccdd11223344,aabbccddeeff00112233445566778899,' +
+  'myservice-1a2b3c4d5e-fghij,example-ns,myservice'
+
+const KIBANA_FLAT_CSV = [KIBANA_FLAT_HEADER, KIBANA_FLAT_ROW_INFO, KIBANA_FLAT_ROW_ACCESS].join(
+  '\n'
+)
+
+describe('CsvLogLoader — Kibana flat-columns format (all headers _source. prefixed)', () => {
+  const result = loader.parse(KIBANA_FLAT_CSV, 'kibana-flat.csv')
+
+  it('parses two entries', () => {
+    expect(result.entries).toHaveLength(2)
+  })
+
+  it('returns null timestampField — timestamps are nested inside _source, not at top level', () => {
+    expect(result.timestampField).toBeNull()
+  })
+
+  it('sets _timestamp to null when no timestamp field detected', () => {
+    expect(result.entries[0]._timestamp).toBeNull()
+  })
+
+  it('enriches entries with internal fields', () => {
+    const e = result.entries[0]
+    expect(e._sourceFile).toBe('kibana-flat.csv')
+    expect(e._rawIndex).toBe(0)
+    expect(result.entries[1]._rawIndex).toBe(1)
+  })
+
+  it('builds _source as a nested object with level and message', () => {
+    const src = result.entries[0]._source as Record<string, unknown>
+    expect(src.level).toBe('INFO')
+    expect(src.message).toBe('Generic item with ID [98765432109876543210] deleted.')
+    expect(src.loggerName).toBe('com.example.app.service.ItemService')
+  })
+
+  it('preserves @timestamp string inside _source', () => {
+    const src = result.entries[0]._source as Record<string, unknown>
+    expect(src['@timestamp']).toBe('May 24, 2026 @ 10:00:01.100')
+  })
+
+  it('builds _source.mdc as a nested object', () => {
+    const src = result.entries[0]._source as Record<string, unknown>
+    expect(src.mdc).toMatchObject({
+      spanId: 'aabbccdd11223344',
+      traceId: 'aabbccddeeff00112233445566778899',
+    })
+  })
+
+  it('builds _source.kubernetes as a nested object', () => {
+    const src = result.entries[0]._source as Record<string, unknown>
+    expect(src.kubernetes).toMatchObject({
+      pod_name: 'myservice-1a2b3c4d5e-fghij',
+      namespace_name: 'example-ns',
+    })
+  })
+
+  it('handles slash in kubernetes label key', () => {
+    const src = result.entries[0]._source as Record<string, unknown>
+    const labels = (src.kubernetes as Record<string, unknown>).labels as Record<string, unknown>
+    expect(labels['app_kubernetes_io/name']).toBe('myservice')
+  })
+
+  it('parses access-log message with embedded quotes in second entry', () => {
+    const src = result.entries[1]._source as Record<string, unknown>
+    expect(src.level).toBe('INFO')
+    expect(src.loggerName).toBe('io.example.http.access-log')
+    expect(src.message as string).toContain('DELETE /myservice/v2/DEMO/items')
+  })
+})
+
 describe('CsvLogLoader — edge cases', () => {
   it('returns empty result for empty content', () => {
     const result = loader.parse('', 'empty.csv')

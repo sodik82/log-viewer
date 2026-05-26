@@ -1,6 +1,7 @@
 import type { LoadedFile, ColumnMeta } from '../types/log'
+import { TIMESTAMP_FIELD, SOURCE_FILE_FIELD, RAW_INDEX_FIELD } from './internalFields'
 
-const SKIP_KEYS = new Set(['_sourceFile', '_rawIndex'])
+const SKIP_KEYS = new Set([SOURCE_FILE_FIELD, RAW_INDEX_FIELD])
 const PRIORITY_COLUMNS = ['level', 'severity', 'message', 'msg', 'error', 'service', 'logger']
 
 // Five standard column widths, XS → XL
@@ -44,7 +45,7 @@ export function deriveColumns(files: LoadedFile[]): ColumnMeta[] {
     }
   }
 
-  const cols = Array.from(maxLen.keys()).filter((k) => k !== '_timestamp')
+  const cols = Array.from(maxLen.keys()).filter((k) => k !== TIMESTAMP_FIELD)
 
   cols.sort((a, b) => {
     const ai = PRIORITY_COLUMNS.indexOf(a)
@@ -55,9 +56,9 @@ export function deriveColumns(files: LoadedFile[]): ColumnMeta[] {
     return a.localeCompare(b)
   })
 
-  return ['_timestamp', ...cols].map((id) => ({
+  return [TIMESTAMP_FIELD, ...cols].map((id) => ({
     id,
     // _timestamp always renders as ISO string (24 chars → M), even when all values are null
-    width: id === '_timestamp' ? WIDTH_M : pickWidth(maxLen.get(id) ?? 0),
+    width: id === TIMESTAMP_FIELD ? WIDTH_M : pickWidth(maxLen.get(id) ?? 0),
   }))
 }

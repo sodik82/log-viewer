@@ -39,9 +39,17 @@ describe('detectTimestampField', () => {
     expect(detectTimestampField(entries)).toBe('ts')
   })
 
-  it('ignores fields starting with underscore', () => {
+  it('ignores internal fields (_timestamp, _sourceFile, _rawIndex)', () => {
     const entries = [{ _timestamp: '2026-04-16T14:00:00.000Z', message: 'hi' }]
     expect(detectTimestampField(entries)).toBeNull()
+  })
+
+  it('detects non-internal _ prefixed field as timestamp', () => {
+    const entries = [
+      { _index: 'logs-example', _time: '2026-04-16T14:00:00.000Z', message: 'hi' },
+      { _index: 'logs-example', _time: '2026-04-16T14:01:00.000Z', message: 'there' },
+    ]
+    expect(detectTimestampField(entries)).toBe('_time')
   })
 
   it('returns null for empty entries array', () => {
