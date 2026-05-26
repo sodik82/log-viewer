@@ -43,12 +43,14 @@ export class CsvLogLoader implements ILogLoader {
 
   private expandJsonFields(obj: Record<string, unknown>): Record<string, unknown> {
     const result: Record<string, unknown> = {}
+    const jsonExpansions: Record<string, unknown>[] = []
+
     for (const [key, val] of Object.entries(obj)) {
-      if (typeof val === 'string' && val.startsWith('{')) {
+      if (typeof val === 'string' && val.startsWith('{') && val.endsWith('}')) {
         try {
           const parsed = JSON.parse(val)
           if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
-            Object.assign(result, this.flattenJson(parsed as Record<string, unknown>))
+            jsonExpansions.push(this.flattenJson(parsed as Record<string, unknown>))
             continue
           }
         } catch {
@@ -57,6 +59,11 @@ export class CsvLogLoader implements ILogLoader {
       }
       result[key] = val
     }
+
+    for (const expansion of jsonExpansions) {
+      Object.assign(result, expansion)
+    }
+
     return result
   }
 

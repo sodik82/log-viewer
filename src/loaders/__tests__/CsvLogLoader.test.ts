@@ -185,6 +185,12 @@ describe('CsvLogLoader — JSON field edge cases', () => {
     expect(result.entries[0].payload).toBe('{not valid json')
   })
 
+  it('preserves string starting with { but not ending with } without attempting JSON.parse', () => {
+    const csv = 'timestamp,message\n2026-04-14T11:11:05.000Z,{dependency-injection} started'
+    const result = loader.parse(csv, 'test.csv')
+    expect(result.entries[0].message).toBe('{dependency-injection} started')
+  })
+
   it('preserves JSON array value without expansion', () => {
     const csv = 'timestamp,payload\n2026-04-14T11:11:05.000Z,"[1,2,3]"'
     const result = loader.parse(csv, 'test.csv')
@@ -196,6 +202,17 @@ describe('CsvLogLoader — JSON field edge cases', () => {
     const result = loader.parse(csv, 'test.csv')
     expect(result.entries[0]['context.user']).toBe('alice')
     expect(result.entries[0]).not.toHaveProperty('meta')
+  })
+
+  it('expanded JSON fields take precedence over same-named top-level columns', () => {
+    // level appears both as a top-level column and inside the _source JSON blob;
+    // the expanded value should win regardless of column order in the CSV
+    const csv =
+      'timestamp,level,_source\n' +
+      '2026-04-14T11:11:05.000Z,STALE,"{""level"":""INFO"",""message"":""ok""}"'
+    const result = loader.parse(csv, 'test.csv')
+    expect(result.entries[0].level).toBe('INFO')
+    expect(result.entries[0].message).toBe('ok')
   })
 })
 
