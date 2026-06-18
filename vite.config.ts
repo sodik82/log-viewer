@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [react()],
   base: '/log-viewer/',
   server: {
-    host: true,
+    host: process.env.REMOTE_CONTAINERS === 'true' || process.env.CODESPACES === 'true',
     port: 5173,
     strictPort: true,
   },
