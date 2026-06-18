@@ -4,6 +4,11 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   base: '/log-viewer/',
+  server: {
+    host: process.env.REMOTE_CONTAINERS === 'true' || process.env.CODESPACES === 'true',
+    port: 5173,
+    strictPort: true,
+  },
   test: {
     environment: 'node',
   },
