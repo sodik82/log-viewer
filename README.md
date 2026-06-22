@@ -2,7 +2,7 @@
 
 A simple, browser-only SPA for analyzing log files. No server required — all parsing happens locally.
 
-**Live:** https://sodik82.github.io/log-viewer/ 
+**Live:** https://sodik82.github.io/log-viewer/
 
 ## Features
 
@@ -22,38 +22,45 @@ A simple, browser-only SPA for analyzing log files. No server required — all p
 ## Supported log formats
 
 ### NDJSON (newline-delimited JSON)
+
 Each line is a separate JSON object. Nested objects are flattened to dot-notation (e.g. `mdc.traceId`):
+
 ```
 {"timestamp":"2024-01-15T10:00:00Z","level":"INFO","message":"Server started"}
 {"timestamp":"2024-01-15T10:00:01Z","level":"WARN","message":"High memory","mdc":{"traceId":"abc"}}
 ```
 
 ### JSON array
+
 A single JSON array of objects. Nested objects are flattened to dot-notation:
+
 ```json
 [
-  {"timestamp": "2024-01-15T10:00:00Z", "level": "INFO", "message": "Server started"},
-  {"timestamp": "2024-01-15T10:00:01Z", "level": "WARN", "message": "High memory"}
+  { "timestamp": "2024-01-15T10:00:00Z", "level": "INFO", "message": "Server started" },
+  { "timestamp": "2024-01-15T10:00:01Z", "level": "WARN", "message": "High memory" }
 ]
 ```
 
 ### CSV
+
 A header row followed by data rows. Dot-notation headers (e.g. `mdc.traceId`) create nested objects; escape a literal dot with a backslash (`kubernetes\.pod_name` → field key `kubernetes.pod_name`).
+
 ```
 timestamp,level,message,mdc.traceId
 2024-01-15T10:00:00Z,INFO,Server started,abc123
 ```
 
 ### Timestamp detection
+
 The app scans field values and picks the first field where ≥80% of sampled entries contain a recognized timestamp. Supported formats: **ISO 8601** and **Kibana human-readable** (`Mar 27, 2026 @ 12:32:30.038`). Common field names (`timestamp`, `time`, `@timestamp`, `ts`, `date`, `datetime`, `created_at`) are preferred. If no timestamp is detected, entries are shown in file order.
 
 ## Development
 
 ```bash
-npm install
-npm run dev        # dev server at http://localhost:5173/log-viewer/
-npm run build      # production build → dist/
-npm run preview    # preview the production build locally
+pnpm install
+pnpm run dev        # dev server at http://localhost:5173/log-viewer/
+pnpm run build      # production build → dist/
+pnpm run preview    # preview the production build locally
 ```
 
 ## Deploying to GitHub Pages

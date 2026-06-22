@@ -5,12 +5,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev        # Start Vite dev server at http://localhost:5173/log-viewer/
-npm run build      # TypeScript check + production build → dist/
-npm run lint       # ESLint with zero-warning tolerance
-npm run lint:fix   # Prettier format + ESLint auto-fix
-npm run preview    # Preview production build locally
-npm test           # Run Vitest unit tests (vitest run)
+pnpm run dev        # Start Vite dev server at http://localhost:5173/log-viewer/
+pnpm run build      # TypeScript check + production build → dist/
+pnpm run lint       # ESLint with zero-warning tolerance
+pnpm run lint:fix   # Prettier format + ESLint auto-fix
+pnpm run preview    # Preview production build locally
+pnpm test           # Run Vitest unit tests (vitest run)
 ```
 
 CI runs `lint` and `build` on every push; `deploy` auto-publishes to GitHub Pages on push to `main`.

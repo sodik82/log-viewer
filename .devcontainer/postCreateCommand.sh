@@ -10,4 +10,4 @@ if [ -d /home/node/.claude ]; then
   ln -sf /home/node/.claude/.claude.json /home/node/.claude.json
 fi
 
-npm ci
+pnpm install --frozen-lockfile
