@@ -37,12 +37,12 @@ export function DropZone({ onFiles }: Props) {
           browse
         </button>
       </span>
-      <span className="drop-zone__hint">.json · .ndjson · .log · .csv</span>
+      <span className="drop-zone__hint">.json · .ndjson · .log · .csv · .txt</span>
       <input
         ref={inputRef}
         type="file"
         multiple
-        accept=".json,.ndjson,.log,.csv"
+        accept=".json,.ndjson,.log,.csv,.txt"
         style={{ display: 'none' }}
         onChange={handleChange}
       />
