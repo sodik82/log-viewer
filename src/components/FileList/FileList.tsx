@@ -75,7 +75,7 @@ export function FileList({ files, onRemove, onClear, onAdd }: Props) {
         ref={inputRef}
         type="file"
         multiple
-        accept=".json,.ndjson,.log,.csv"
+        accept=".json,.ndjson,.log,.csv,.txt"
         style={{ display: 'none' }}
         onChange={handleInputChange}
       />

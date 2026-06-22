@@ -314,6 +314,44 @@ describe('CsvLogLoader — Kibana flat-columns format (all headers _source. pref
   })
 })
 
+describe('CsvLogLoader — isSupported content sniffing', () => {
+  it('returns true for .csv regardless of content', () => {
+    expect(loader.isSupported('.csv', '')).toBe(true)
+  })
+
+  it('returns true for .txt when first line is quoted CSV', () => {
+    const content =
+      '"@timestamp","service","log"\n"Jun 1, 2026 @ 10:00:00.000","auth-service","started"'
+    expect(loader.isSupported('.txt', content)).toBe(true)
+  })
+
+  it('returns false for .txt when first line is plain text', () => {
+    const content = '2026-06-22 10:00:00 INFO Starting up\n2026-06-22 10:00:01 INFO Ready'
+    expect(loader.isSupported('.txt', content)).toBe(false)
+  })
+
+  it('returns false for .log even with quoted CSV content', () => {
+    expect(loader.isSupported('.log', '"@timestamp","service","log"\n')).toBe(false)
+  })
+
+  it('returns false for .json even with quoted CSV content', () => {
+    expect(loader.isSupported('.json', '"@timestamp","service","log"\n')).toBe(false)
+  })
+
+  it('parses a .txt file with Kibana quoted CSV content', () => {
+    const content =
+      '"@timestamp","service","log"\n' +
+      '"Jun 1, 2026 @ 10:00:00.000","auth-service","User login succeeded for account 11111"\n' +
+      '"Jun 1, 2026 @ 10:00:01.000","order-service","Order 22222 created"'
+    const result = loader.parse(content, 'export.txt')
+    expect(result.entries).toHaveLength(2)
+    expect(result.timestampField).toBe('@timestamp')
+    expect(result.entries[0]._timestamp).toBeInstanceOf(Date)
+    expect(result.entries[0].service).toBe('auth-service')
+    expect(result.entries[1].service).toBe('order-service')
+  })
+})
+
 describe('CsvLogLoader — edge cases', () => {
   it('returns empty result for empty content', () => {
     const result = loader.parse('', 'empty.csv')

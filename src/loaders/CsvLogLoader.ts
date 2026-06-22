@@ -5,8 +5,11 @@ import { detectTimestampField, parseTimestampValue } from '../utils/timestampDet
 export class CsvLogLoader implements ILogLoader {
   readonly name = 'CSV'
 
-  isSupported(ext: string, _contentHint: string): boolean {
-    return ext === '.csv'
+  isSupported(ext: string, contentHint: string): boolean {
+    if (ext === '.csv') return true
+    if (ext === '.json' || ext === '.ndjson' || ext === '.log') return false
+    const firstLine = contentHint.trimStart().split(/\r?\n/)[0] ?? ''
+    return /^"[^"]*"(?:,"[^"]*")+/.test(firstLine)
   }
 
   parse(content: string, fileName: string): ParseResult {

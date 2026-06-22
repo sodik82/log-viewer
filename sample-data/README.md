@@ -52,6 +52,13 @@ Two-column format: `@timestamp` + `_source`. The `_source` cell contains a JSON 
 
 ---
 
+### `kibana-export.txt` — Kibana CSV export saved as `.txt`
+Same Kibana quoted-CSV format as `kibana-export.csv`, but with a `.txt` extension — the format that results when a browser saves a Kibana export without renaming. The loader detects CSV content from the quoted header line rather than relying on the extension.
+
+**Try:** Drop `kibana-export.txt` onto the viewer (or pick it via the file browser) and confirm it loads with `@timestamp` driving the histogram. Then drop it together with `app-logs.ndjson` to see both sources merged chronologically.
+
+---
+
 ### `kibana-flat-columns.csv` — Kibana Discover export with `_source.` column prefix
 A wider Kibana export where every data column is prefixed with `_source.` (e.g. `_source.level`, `_source.mdc.traceId`, `_source.kubernetes.pod_name`). The loader flattens these to direct dot-notation keys. Timestamp is detected from `_source.@timestamp`.
 
