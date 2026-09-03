@@ -14,7 +14,7 @@ import { TIMESTAMP_FIELD } from './utils/internalFields'
 import './App.css'
 
 export function App() {
-  const { files, addFiles, removeFile, clearAll } = useLoadedFiles()
+  const { files, addFiles, addText, removeFile, clearAll } = useLoadedFiles()
   const { sorted, columns, hasNoTimestamp, allEntries } = useLogTable(files)
   const { config, presentIds, reorder, setVisible, merge, unmerge } = useColumnConfig(columns)
   const visibleConfig = useMemo(
@@ -46,8 +46,14 @@ export function App() {
         <h1 className="app__title">Log Viewer</h1>
       </header>
       <main className="app__main">
-        {files.length === 0 && <DropZone onFiles={addFiles} />}
-        <FileList files={files} onRemove={removeFile} onClear={clearAll} onAdd={addFiles} />
+        {files.length === 0 && <DropZone onFiles={addFiles} onPasteText={addText} />}
+        <FileList
+          files={files}
+          onRemove={removeFile}
+          onClear={clearAll}
+          onAdd={addFiles}
+          onPasteText={addText}
+        />
         {hasEntries && hasTimestamps && (
           <TimeHistogram
             entries={allEntries}
