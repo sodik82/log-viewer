@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { LoadedFile } from '../types/log'
-import { getLoaderForFile } from '../loaders'
+import { getLoaderForFile, guessVirtualName } from '../loaders'
 
 function readFileAsText(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -20,6 +20,7 @@ function generateId(): string {
 
 export function useLoadedFiles() {
   const [files, setFiles] = useState<LoadedFile[]>([])
+  const pasteCountRef = useRef(0)
 
   async function addFiles(fileList: FileList | File[]) {
     const arr = Array.from(fileList)
@@ -74,6 +75,36 @@ export function useLoadedFiles() {
     setFiles((prev) => [...prev, ...loaded])
   }
 
+  function addText(content: string) {
+    const trimmed = content.trim()
+    if (!trimmed) return
+    pasteCountRef.current += 1
+    const index = pasteCountRef.current
+    const displayName = `Paste #${index}`
+    const virtualName = guessVirtualName(trimmed, index)
+    const loader = getLoaderForFile(virtualName, trimmed)
+    let loadedFile: LoadedFile
+    try {
+      const { entries, timestampField } = loader.parse(trimmed, displayName)
+      loadedFile = {
+        id: generateId(),
+        name: displayName,
+        entries,
+        timestampField,
+        error: entries.length === 0 ? 'No valid entries found' : null,
+      }
+    } catch {
+      loadedFile = {
+        id: generateId(),
+        name: displayName,
+        entries: [],
+        timestampField: null,
+        error: 'Parse error',
+      }
+    }
+    setFiles((prev) => [...prev, loadedFile])
+  }
+
   function removeFile(id: string) {
     setFiles((prev) => prev.filter((f) => f.id !== id))
   }
@@ -82,5 +113,5 @@ export function useLoadedFiles() {
     setFiles([])
   }
 
-  return { files, addFiles, removeFile, clearAll }
+  return { files, addFiles, addText, removeFile, clearAll }
 }

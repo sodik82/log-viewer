@@ -1,0 +1,65 @@
+.paste-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.paste-panel__textarea {
+  width: 100%;
+  height: 160px;
+  font-family: monospace;
+  font-size: 0.82rem;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  resize: vertical;
+  background: #f8fafc;
+  color: #1e293b;
+  box-sizing: border-box;
+}
+
+.paste-panel__textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.paste-panel__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.paste-panel__load {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 18px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.paste-panel__load:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.paste-panel__load:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.paste-panel__cancel {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 6px 4px;
+  text-decoration: underline;
+}
+
+.paste-panel__cancel:hover {
+  color: #1e293b;
+}

@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import type { LoadedFile } from '../../types/log'
+import { PastePanel } from '../PastePanel/PastePanel'
 import './FileList.css'
 
 interface Props {
@@ -7,10 +8,12 @@ interface Props {
   onRemove: (id: string) => void
   onClear: () => void
   onAdd: (files: File[]) => void
+  onPasteText: (content: string) => void
 }
 
-export function FileList({ files, onRemove, onClear, onAdd }: Props) {
+export function FileList({ files, onRemove, onClear, onAdd, onPasteText }: Props) {
   const [dragCount, setDragCount] = useState(0)
+  const [showPaste, setShowPaste] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const isDragging = dragCount > 0
 
@@ -41,6 +44,11 @@ export function FileList({ files, onRemove, onClear, onAdd }: Props) {
     e.target.value = ''
   }
 
+  function handleLoad(content: string) {
+    onPasteText(content)
+    setShowPaste(false)
+  }
+
   return (
     <div
       className="file-list"
@@ -69,8 +77,16 @@ export function FileList({ files, onRemove, onClear, onAdd }: Props) {
         <button className="file-list__add-btn" onClick={() => inputRef.current?.click()}>
           + Add files
         </button>
+        <button className="file-list__add-btn" onClick={() => setShowPaste((s) => !s)}>
+          Paste text
+        </button>
         {isDragging && <span className="file-list__drop-hint">Drop here</span>}
       </div>
+      {showPaste && (
+        <div className="file-list__paste-panel">
+          <PastePanel onLoad={handleLoad} onCancel={() => setShowPaste(false)} />
+        </div>
+      )}
       <input
         ref={inputRef}
         type="file"
